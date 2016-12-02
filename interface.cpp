@@ -3,6 +3,7 @@
 
 #include <emscripten.h>
 #include <htslib/sam.h>
+#include <htslib/kstring.h>
 #include <stdlib.h>
 #include <string.h>
 #include <map>
@@ -39,13 +40,31 @@ int test(int fd) {
     header = sam_hdr_read(file_map[fd]);
     b = bam_init1();
 
-    int rtn;
+    int rtn, qlen;
+    uint8_t *seq;
+    int8_t *buf;
 
-    for (int i = 0; i < 100; i++) {
+    int max_buf = 0;
+    int i;
+    int loop_var;
+
+    for (int loop_var = 0; loop_var < 100; loop_var++) {
         rtn = sam_read1(file_map[fd], header, b);
-        printf("%s\n", bam_get_qname(b));
+
+        qlen = b->core.l_qseq;
+        seq = bam_get_seq(b);
+        if (max_buf < qlen + 1) {
+            max_buf = qlen + 1;
+            kroundup32(max_buf);
+            buf = (int8_t *)realloc(buf, max_buf);
+        }
+        for (i = 0; i < qlen; ++i)
+            buf[i] = seq_nt16_str[bam_seqi(seq, i)];
+
+        printf("%s, %s\n", bam_get_qname(b), (char*)buf);
     }
 
+    free(buf);
     bam_destroy1(b);
     bam_hdr_destroy(header);
 
