@@ -1,0 +1,16 @@
+<html>
+<head>
+<script>
+var w = new Worker("worker.js");
+
+function run() {
+    var x = document.getElementById("bam");
+    w.postMessage([0, x.files[0]]);
+}
+
+</script>
+</head>
+<body>
+        <input type="file" id="bam"></input><button onclick="run()">Run</button>
+</body>
+</html>
