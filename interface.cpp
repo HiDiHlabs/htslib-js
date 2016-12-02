@@ -27,29 +27,28 @@ int bgzf_open_js(int fid) {
     return 0;
 }
 
-void bgzf_close_js(int fid) {
-    hts_close(file_map[fid]);
-    delete file_map[fid];
+void bgzf_close_js(int fd) {
+    hts_close(file_map[fd]); // TODO: incompatible?
+    delete file_map[fd];
 }
 
-void sam_hdr_read_js(int fd) {
-    bam_hdr_t *header = 0;
-
-    header = sam_hdr_read(file_map[fd]);
-}
-
-int sam_read1_js(int fd) {
+int test(int fd) {
     bam_hdr_t *header = NULL;
     bam1_t *b= NULL;
 
     header = sam_hdr_read(file_map[fd]);
     b = bam_init1();
 
-    int rtn = sam_read1(file_map[fd], header, b);
-    
+    int rtn;
+
+    for (int i = 0; i < 100; i++) {
+        rtn = sam_read1(file_map[fd], header, b);
+        printf("%s\n", bam_get_qname(b));
+    }
 
     bam_destroy1(b);
     bam_hdr_destroy(header);
+
     return rtn;
 }
 

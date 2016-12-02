@@ -109,6 +109,18 @@ function hts_open(fileobj) {
         return 0;
 }
 
-function sam_hdr_read(f) {
-    return Module._sam_hdr_read_js(f);
+function hts_close(fd) {
+    Module._bgzf_close_js(fd);
+}
+
+function sam_hdr_read(fd) {
+    return Module._sam_hdr_read_js(fd);
+}
+
+function sam_read1(fd) {
+    return Module._sam_read1_js(fd); 
+}
+
+function test(fd) {
+    Module._test(fd);
 }
