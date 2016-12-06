@@ -6,8 +6,8 @@ function Htsfile(fileobj) {
     this.cursor = -1;
     this.bufsize = 4194304; // 4 MiB
     this.buf = undefined;
-    this.fileobj = fileobj;
     this.eof = 0;
+    this.fileobj = fileobj;
 }
 
 Htsfile.prototype._getchunk = function () {
@@ -23,15 +23,21 @@ Htsfile.prototype._getchunk = function () {
 }
 
 Htsfile.prototype.seek = function (offset, whence) {
-    if (this.offset != offset) {
-        if (this.offset < offset && offset < this.offset+this.bufsize) {
-            this.cursor = offset - this.offset;
+    var prev_offset = this.offset - this.bufsize;
+    if (whence >= 0 && whence <= 2) {
+        if (whence == 1)
+            offset += prev_offset;
+        if (whence == 2)
+            offset = this.fileobj.size + offset;
+        if (prev_offset <= offset && offset < this.offset) {
+            this.cursor = offset - prev_offset;
         } else {
             this.offset = offset;
             this.cursor = -1;
         }
+        return offset;
     }
-    return this.offset + this.cursor;
+    return -1;
 }
 
 Htsfile.prototype.read = function (ptr, nbytes) {
@@ -113,14 +119,7 @@ function hts_close(fd) {
     Module._bgzf_close_js(fd);
 }
 
-function sam_hdr_read(fd) {
-    return Module._sam_hdr_read_js(fd);
-}
-
-function sam_read1(fd) {
-    return Module._sam_read1_js(fd); 
-}
-
 function test(fd) {
     Module._test(fd);
 }
+
