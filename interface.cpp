@@ -1,6 +1,3 @@
-#include "hts_js.h"
-#include "hfile_js.h"
-
 #include <emscripten.h>
 #include <htslib/sam.h>
 #include <htslib/kstring.h>
@@ -8,6 +5,10 @@
 #include <string.h>
 #include <map>
 #include <stdio.h>
+
+#include "hts_js.h"
+#include "hfile_js.h"
+#include "digenome.h"
 
 std::map<int, htsFile*> file_map;
 
@@ -18,7 +19,7 @@ int bgzf_open_js(int fid) {
 
     hFILE* h_bam = hopen_js(fid);
     char *fn = (char *)EM_ASM_INT({
-        return allocate(intArrayFromString(htsfiles[$0].fileobj.name), 'i8', ALLOC_NORMAL);
+        return allocate(intArrayFromString(self['htsfiles'][$0]['fileobj'].name), 'i8', ALLOC_NORMAL);
     }, fid);
 
     htsFile* bam = hts_hopen_js(h_bam, fn, "rb");
@@ -29,10 +30,20 @@ int bgzf_open_js(int fid) {
 }
 
 void bgzf_close_js(int fd) {
-    hts_close(file_map[fd]); // TODO: incompatible?
+    //hts_close(file_map[fd]); // TODO: incompatible?
     delete file_map[fd];
 }
 
+void report_progress(int progress) {
+    printf("cnt: %d\n", progress);
+}
+
+int test(int fd) {
+    run_digenome(file_map[fd], report_progress);
+    return 0;
+}
+
+/*
 int test(int fd) {
     bam_hdr_t *header = NULL;
     bam1_t *b= NULL;
@@ -70,6 +81,7 @@ int test(int fd) {
 
     return rtn;
 }
+*/
 
 }
 /*
