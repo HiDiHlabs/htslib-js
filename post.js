@@ -1,3 +1,4 @@
+
 var htsfiles = {};
 
 function Htsfile(fileobj) {
@@ -7,19 +8,22 @@ function Htsfile(fileobj) {
     this.bufsize = 4194304; // 4 MiB
     this.buf = undefined;
     this.eof = 0;
+    this.last_chunk = 0;
     this.fileobj = fileobj;
 }
 
 Htsfile.prototype._getchunk = function () {
     if (this.fileobj.size > this.offset+this.bufsize) {
+        this.last_chunk = 0;
         blob = this.fileobj.slice(this.offset, this.offset+this.bufsize);
     } else {
         blob = this.fileobj.slice(this.offset, this.fileobj.size);
-        this.eof = 1;
+        this.last_chunk = 1;
     }
     this.offset += this.bufsize;
     this.buf = this.reader.readAsArrayBuffer(blob);
     this.cursor = 0;
+    self.postMessage([0, this.offset/this.fileobj.size*100]);
 }
 
 Htsfile.prototype.seek = function (offset, whence) {
@@ -34,7 +38,9 @@ Htsfile.prototype.seek = function (offset, whence) {
         } else {
             this.offset = offset;
             this.cursor = -1;
+            this.last_chunk = 0;
         }
+        this.eof = 0;
         return offset;
     }
     return -1;
@@ -43,43 +49,36 @@ Htsfile.prototype.seek = function (offset, whence) {
 Htsfile.prototype.read = function (ptr, nbytes) {
     var buf, heap, over, nbytesread;
 
-    if (this.cursor === -1)
-        this._getchunk();
+    if (this.last_chunk && this.cursor == -1) this.eof = 1;
+    if (this.eof) return 0;
 
+    nbytesread = 0;
     heap = new Int8Array(Module.HEAP8.buffer, ptr, nbytes);
-    if (this.bufsize > this.cursor+nbytes) {
-        buf = this.buf.slice(this.cursor, this.cursor+nbytes);
-        heap.set(new Int8Array(buf));
-        nbytesread = nbytes;
-
-        this.cursor += nbytes;
-    } else {
-        if (this.eof) return 0;
-
-        over = this.cursor + nbytes - this.bufsize + 1;
-
-        buf = this.buf.slice(this.cursor, this.bufsize);
-        heap.set(new Int8Array(buf));
-
-        nbytesread = this.bufsize - this.cursor;
-
-        this._getchunk();
-        if (this.eof) {
-            if (this.buf.byteLength > over) {
-                buf = this.buf.slice(0, over);
-                heap.set(new Int8Array(buf, nbytes-over));
-                nbytesread += over;
-            } else if (this.buf.byteLength > 0) {
-                heap.set(new Int8Array(buf));
-                nbytesread += buf.byteLength;
-            }
-        } else {
-            buf = this.buf.slice(0, over);
-            heap.set(new Int8Array(buf, nbytes-over));
-            nbytesread += over;
+    while (1) {
+        if (this.cursor == -1) {
+            if (this.last_chunk) {
+                this.eof = 1;
+                break;
+            } else this._getchunk();
         }
 
-        this.cursor += over;
+        if (this.bufsize > this.cursor+nbytes) {
+            // read part of buffer
+            buf = this.buf.slice(this.cursor, this.cursor+nbytes);
+            heap.set(new Int8Array(buf));
+            nbytesread = nbytes;
+
+            this.cursor += nbytes;
+        } else {
+            // read whole buffer
+            buf = this.buf.slice(this.cursor, this.bufsize);
+            heap.set(new Int8Array(buf), nbytesread);
+
+            nbytesread += this.bufsize - this.cursor;
+            this.cursor = -1;
+        }
+        nbytes -= nbytesread;
+        if (nbytes < this.bufsize) break;
     }
     return nbytesread;
 }
