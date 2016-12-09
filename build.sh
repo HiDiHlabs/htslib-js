@@ -18,5 +18,5 @@ $CC $HEADERS $RELEASE_FLAGS hts_js.cpp -o hts_js.bc
 $CC $HEADERS $RELEASE_FLAGS interface.cpp -o interface.bc
 $CC $HEADERS $RELEASE_FLAGS digenome.cpp -o digenome.bc
 
-$CC digenome.bc interface.bc hfile_js.bc hts_js.bc htslib/libhts.a zlib/libz.a $HEADERS --post-js <(echo "self['Module'] = Module;") -s EXPORTED_FUNCTIONS="['_bgzf_open_js', '_bgzf_close_js', '_test']" $RELEASE_FLAGS -o htslib_worker.js
+$CC digenome.bc interface.bc hfile_js.bc hts_js.bc htslib/libhts.a zlib/libz.a $HEADERS --post-js <(echo "self['Module'] = Module; self['Pointer_stringify'] = Pointer_stringify;") -s EXPORTED_FUNCTIONS="['_bgzf_open_js', '_bgzf_close_js', '_test']" $RELEASE_FLAGS -o htslib_worker.js
 cat post.js >> htslib_worker.js

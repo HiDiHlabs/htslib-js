@@ -34,12 +34,14 @@ void bgzf_close_js(int fd) {
     delete file_map[fd];
 }
 
-void report_progress(int progress) {
-    printf("cnt: %d\n", progress);
+void callback(char *chrom, int pos) {
+    EM_ASM_ARGS({
+        postMessage([1, Pointer_stringify($0), $1]);
+    }, chrom, pos);
 }
 
 int test(int fd) {
-    run_digenome(file_map[fd], report_progress);
+    run_digenome(file_map[fd], callback);
     return 0;
 }
 

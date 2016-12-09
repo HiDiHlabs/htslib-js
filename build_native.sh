@@ -15,5 +15,5 @@ cd ..
 $CC $HEADERS $RELEASE_FLAGS -c digenome.cpp -o digenome.o
 $CC $HEADERS $RELEASE_FLAGS -c test_native.cpp -o test_native.o
 
-$CC test_native.o digenome.o htslib_native/libhts.a -pthread -lz $HEADERS $RELEASE_FLAGS -o digenome
-
+#$CC test_native.o digenome.o htslib_native/libhts.a -pthread -lz $HEADERS $RELEASE_FLAGS -o digenome
+$CC test_native.o digenome.o -lhts $HEADERS $RELEASE_FLAGS -o digenome
