@@ -2,8 +2,8 @@
 #include "htslib/sam.h"
 #include "digenome.h"
 
-void report_progress(int progress) {
- //printf("cnt: %d\n", progress);
+void report_progress(char *chrom, int pos) {
+ printf("Found cleavage position at %s:%d\n", chrom, pos);
 }
 
 int main(int argc, char **argv) {
