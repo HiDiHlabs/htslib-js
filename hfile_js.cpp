@@ -13,8 +13,10 @@ static ssize_t js_read(hFILE *fp, void *buffer, size_t nbytes)
 
 static off_t js_seek(hFILE *fp, off_t offset, int whence)
 {
+    // To deal with too large file..
     off_t off = EM_ASM_INT({
-        return js_seek($0, $1, $2);
+        var off = js_seek($0, $1, $2);
+        return ((off > 0)? 1 : off);
     }, ((hFILE_js *)fp)->fd, offset, whence);
     return off;
 }
