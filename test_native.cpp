@@ -12,7 +12,7 @@ void report_pileup(char *chrom, int pos, int depth) {
 }
 
 int main(int argc, char **argv) {
-    htsFile *fp = sam_open("/data/small_MB99.bam", "rb");
+    htsFile *fp = sam_open("/data/Tcell-CCR5-9_sorted_chr22.bam", "rb");
     if (argv[1][0] == 48) { // "0"
         digenome(fp, report_progress);
     } else {

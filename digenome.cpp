@@ -25,14 +25,17 @@ void digenome(htsFile *fp, void (*callback)(char*, int) ) {
     int min_r = 5, min_l = 5; // Minimum number of reads start/end at the same position
     int min_depth_r = 10, min_depth_l = 10; // Minimum depth on each side
     int tmp, found_rpos, found_rcnt;
+    int min_mapQ = 20;
+    float min_ratio_r = 0.2f, min_ratio_l = 0.2f;
 
     while (1) {
         if(sam_read1(fp, header, b) < 0) break; // EOF
+        if ( b->core.flag & (BAM_FUNMAP | BAM_FSECONDARY | BAM_FQCFAIL | BAM_FDUP) ) continue;
+        if ( (int)b->core.qual < min_mapQ ) continue;
 
         if (b->core.tid != prev_tid) {
             for (iter=found_lmap.begin(); iter!=found_lmap.end(); iter++) {
-                if (iter->second > min_l && depth_map[iter->first] > min_depth_l) {
-                    printf("Found cleavage at %s:%d, depth_l=%d, cnt_l=%d\n", header->target_name[prev_tid], iter->first - 1, depth_map[iter->first], iter->second);
+                if (iter->second > min_l && depth_map[iter->first] > min_depth_l && ((float)min_l)/((float)depth_map[iter->first]) > min_ratio_l) {
                     callback(header->target_name[prev_tid], iter->first - 1);
                 }
             }
@@ -60,7 +63,7 @@ void digenome(htsFile *fp, void (*callback)(char*, int) ) {
                 depth_map[i]++;
         }
 
-        for (iter=depth_map.begin(); iter!=depth_map.end(); ) {
+        for (iter=depth_map.begin(); iter!=depth_map.end(); ) { // How do we avoid this?
             if (iter->first < lpos - window_size)
                 depth_map.erase(iter++);
             else
@@ -94,8 +97,7 @@ void digenome(htsFile *fp, void (*callback)(char*, int) ) {
 
         if (rfound && found_rpos < lpos) {
             // This block will be executed only once after finding rpos
-            printf("lpos=%d, deptn_map[found_rpos]=%d\n", lpos, depth_map[found_rpos]);
-            if (lpos < found_rpos + window_size + 1 && min_depth_r < depth_map[found_rpos]) {
+            if (lpos < found_rpos + window_size + 1 && min_depth_r < depth_map[found_rpos] && ((float)found_rcnt)/((float)depth_map[found_rpos]) > min_ratio_r) {
                 found_rmap[found_rpos] = found_rcnt;
                 found_lmap[found_rpos + 1] = 1;
             }
@@ -114,9 +116,7 @@ void digenome(htsFile *fp, void (*callback)(char*, int) ) {
 
         for (iter=found_lmap.begin(); iter!=found_lmap.end(); ) {
             if (lpos > iter->first + window_size - 1) {
-                printf("iter->second=%d, deptn_map[iter->first]=%d\n", iter->second, depth_map[iter->first]);
-                if (iter->second > min_l && depth_map[iter->first] > min_depth_l) {
-                    printf("Found cleavage at %s:%d, depth_l=%d, cnt_l=%d\n", header->target_name[b->core.tid], iter->first - 1, depth_map[iter->first], iter->second);
+                if (iter->second > min_l && depth_map[iter->first] > min_depth_l && ((float)min_l)/((float)depth_map[iter->first]) > min_ratio_l) {
                     callback(header->target_name[b->core.tid], iter->first - 1);
                 }
                 found_lmap.erase(iter++);
@@ -125,9 +125,7 @@ void digenome(htsFile *fp, void (*callback)(char*, int) ) {
     }
 
     for (iter=found_lmap.begin(); iter!=found_lmap.end(); iter++) {
-        printf("iter->second=%d, deptn_map[iter->first]=%d\n", iter->second, depth_map[iter->first]);
-        if (iter->second > min_l && depth_map[iter->first] > min_depth_l) {
-            printf("Found cleavage at %s:%d, depth_l=%d, cnt_l=%d\n", header->target_name[prev_tid], iter->first - 1, depth_map[iter->first], iter->second);
+        if (iter->second > min_l && depth_map[iter->first] > min_depth_l && ((float)min_l)/((float)depth_map[iter->first]) > min_ratio_l) {
             callback(header->target_name[prev_tid], iter->first - 1);
         }
     }
