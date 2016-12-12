@@ -1,1 +1,1 @@
-void run_digenome(htsFile *fp, void (*callback)(char*, int));
+void digenome(htsFile *fp, void (*callback)(char*, int));

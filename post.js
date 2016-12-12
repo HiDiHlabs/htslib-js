@@ -118,7 +118,13 @@ function hts_close(fd) {
     Module._bgzf_close_js(fd);
 }
 
-function test(fd) {
-    Module._test(fd);
+function run_digenome(fd) {
+    Module._run_digenome(fd);
 }
+
+function run_pileup(fd) {
+    Module._run_pileup(fd);
+}
+
+
 

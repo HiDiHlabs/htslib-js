@@ -1,13 +1,17 @@
 importScripts('htslib_worker.js');
 
 onmessage = function(e) {
+    t1 = performance.now();
     cmd = e.data[0];
     if (cmd === 0) {
-        t1 = performance.now();
         fd = hts_open(e.data[1]);
-        test(fd);
+        run_pileup(fd);
         hts_close(fd);
-        t2 = performance.now();
-        postMessage([2, (t2 - t1)/1000]);
+    } else if (cmd === 1) {
+        fd = hts_open(e.data[1]);
+        run_digenome(fd);
+        hts_close(fd); 
     }
+    t2 = performance.now();
+    postMessage([3, (t2 - t1)/1000]);
 };

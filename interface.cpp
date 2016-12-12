@@ -8,6 +8,7 @@
 
 #include "hts_js.h"
 #include "hfile_js.h"
+#include "pileup.h"
 #include "digenome.h"
 
 std::map<int, htsFile*> file_map;
@@ -34,16 +35,28 @@ void bgzf_close_js(int fd) {
     delete file_map[fd];
 }
 
-void callback(char *chrom, int pos) {
+void callback_pileup(char *chrom, int pos, int depth) {
     EM_ASM_ARGS({
-        postMessage([1, Pointer_stringify($0), $1]);
+        postMessage([1, Pointer_stringify($0), $1, $2]);
+    }, chrom, pos, depth);
+}
+
+void callback_digenome(char *chrom, int pos) {
+    EM_ASM_ARGS({
+        postMessage([2, Pointer_stringify($0), $1]);
     }, chrom, pos);
 }
 
-int test(int fd) {
-    run_digenome(file_map[fd], callback);
+int run_pileup(int fd) {
+    pileup(file_map[fd], callback_pileup);
     return 0;
 }
+
+int run_digenome(int fd) {
+    digenome(file_map[fd], callback_digenome);
+    return 0;
+}
+
 
 /*
 int test(int fd) {
