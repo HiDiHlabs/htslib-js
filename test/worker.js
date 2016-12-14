@@ -1,3 +1,4 @@
+importScripts('htslib_worker.asm.js');
 importScripts('htslib_worker.js');
 
 onmessage = function(e) {

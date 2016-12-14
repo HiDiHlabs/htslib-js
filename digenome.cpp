@@ -25,7 +25,7 @@ void digenome(htsFile *fp, void (*callback)(char*, int) ) {
     int min_r = 5, min_l = 5; // Minimum number of reads start/end at the same position
     int min_depth_r = 10, min_depth_l = 10; // Minimum depth on each side
     int tmp, found_rpos, found_rcnt;
-    int min_mapQ = 20;
+    int min_mapQ = 0;
     float min_ratio_r = 0.2f, min_ratio_l = 0.2f;
 
     while (1) {
@@ -56,18 +56,11 @@ void digenome(htsFile *fp, void (*callback)(char*, int) ) {
         lpos = rpos = b->core.pos;
         lpos++; rpos += bam_cigar2rlen(n_cigar, cigar); // 1-based coordinate
 
-        for (i=lpos; i<=rpos; i++) {
+        for (i=lpos; i<rpos+1; i++) {
             if (depth_map.find(i) == depth_map.end())
                 depth_map[i] = 1;
             else
                 depth_map[i]++;
-        }
-
-        for (iter=depth_map.begin(); iter!=depth_map.end(); ) { // How do we avoid this?
-            if (iter->first < lpos - window_size)
-                depth_map.erase(iter++);
-            else
-                iter++;
         }
 
         if (rmap.find(rpos) == rmap.end())
@@ -121,6 +114,13 @@ void digenome(htsFile *fp, void (*callback)(char*, int) ) {
                 }
                 found_lmap.erase(iter++);
             } else iter++;
+        }
+
+        for (iter=depth_map.begin(); iter!=depth_map.end(); ) {
+            if (iter->first < lpos - window_size)
+                depth_map.erase(iter++);
+            else
+                iter++;
         }
     }
 

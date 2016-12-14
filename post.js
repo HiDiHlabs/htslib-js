@@ -126,5 +126,7 @@ function run_pileup(fd) {
     Module._run_pileup(fd);
 }
 
-
-
+self["hts_open"] = hts_open;
+self["hts_close"] = hts_close;
+self["run_digenome"] = run_digenome;
+self["run_pileup"] = run_pileup;
