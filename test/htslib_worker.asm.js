@@ -1,0 +1,1 @@
+../htslib_worker.asm.js
