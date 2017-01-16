@@ -7,129 +7,124 @@
 
 using namespace std;
 
-void digenome(htsFile *fp, void (*callback)(char*, int) ) {
+int get_map(map<int, int> &m, int idx, int def = 0) {
+    map<int, int>::iterator iter = m.find(idx);
+    if (iter == m.end()) {
+        return def;
+    } else {
+        return iter->second;
+    }
+}
+
+float calc_score(int i, int overhang, map<int, int> &f, map<int, int> &r, map<int, int> &d) {
+    float score = 0.0f;
+    int a;
+    for (a=1; a<6; a++) {
+        score +=
+          ((float)get_map(f, i)-1.0f) / ((float)get_map(d, i)) * ((float)get_map(r, i-4+overhang+a)-1.0f) / ((float)get_map(d, i-4+overhang+a)) * (get_map(f, i) + get_map(r, i-4+overhang+a) - 2.0f)
+          +
+          ((float)get_map(r, i-1+overhang) - 1.0f) / ((float)get_map(d, i-1+overhang)) * ((float)get_map(f, i-3+a) - 1.0f) / ((float)get_map(d, i-3+a) - 1.0f) * (get_map(r, i-1+overhang) + get_map(f, i-3+a) - 2.0f);
+    }
+    return score;
+}
+
+void inc_map(map<int, int> &m, int idx) {
+    map<int, int>::iterator iter = m.find(idx);
+    if (iter == m.end()) {
+        m[idx] = 1;
+    } else {
+        m[idx]++;
+    }
+}
+
+void check_cleavage(char* chrom, int pos, int overhang, int min_f, int min_r, float min_score, int min_depth_f, int min_depth_r, float min_ratio_f, float min_ratio_r, map<int, int> &fmap, map<int, int> &rmap, map<int, int> &dmap, void (*callback)(char*, int, int, int, int, int, float, float, float)) {
+    int fpos, rpos, fcnt, rcnt, depth_f, depth_r;
+    float ratio_f, ratio_r, score;
+    map<int, int>::iterator iter;
+
+    for (iter=fmap.begin(); (iter->first) <= pos && iter != fmap.end(); iter++) {
+        fpos = iter->first;
+        rpos = fpos - 1 + overhang;
+
+        fcnt = iter->second;
+        rcnt = get_map(rmap, rpos);
+
+        depth_f = dmap[fpos];
+        depth_r = dmap[rpos];
+
+        ratio_f = ((float)fcnt)/((float)depth_f);
+        ratio_r = ((float)rcnt)/((float)depth_r);
+
+        score = calc_score(fpos, overhang, fmap, rmap, dmap);
+
+        if (fcnt > min_f && rcnt > min_r && score > min_score && depth_f > min_depth_f && depth_r > min_depth_r && ratio_f > min_ratio_f && ratio_r > min_ratio_r) {
+            callback(chrom, fpos, fcnt, rcnt, depth_f, depth_r, ratio_f, ratio_r, score);
+        }
+    }
+}
+
+void digenome(htsFile *fp, int min_mapq, int overhang, int min_f, int min_r, float min_score, int min_depth_f, int min_depth_r, float min_ratio_f, float min_ratio_r, void (*callback)(char*, int, int, int, int, int, float, float, float) ) {
     uint32_t *cigar = (uint32_t *)malloc(500 * sizeof(uint32_t));
-    uint32_t cigar_type;
     bam1_t *b = bam_init1();
     bam_hdr_t *header = sam_hdr_read(fp);
 
-    int n_cigar, rtn, lpos = -1, rpos = -1, prev_tid = -1;
-    int loop_var, i;
-    bool rfound = false;
+    int i, n_cigar, prev_tid = -1;
+    int lpos, rpos, plpos = -1, min_for_pos, min_rev_pos, max_examin_pos;
 
-    int window_size = 1; // Analysis window size on each side
-
-    map<int, int> rmap, found_lmap, found_rmap, depth_map;
+    map<int, int> fmap, rmap, dmap;
     map<int, int>::iterator iter;
 
-    int min_r = 5, min_l = 5; // Minimum number of reads start/end at the same position
-    int min_depth_r = 10, min_depth_l = 10; // Minimum depth on each side
-    int tmp, found_rpos, found_rcnt;
-    int min_mapQ = 0;
-    float min_ratio_r = 0.2f, min_ratio_l = 0.2f;
-
+    //printf("Analysis started: %d, %d, %d, %d, %f, %d, %d, %f, %f\n", min_mapq, overhang, min_f, min_r, min_score, min_depth_f, min_depth_r, min_ratio_f, min_ratio_r);
     while (1) {
-        if(sam_read1(fp, header, b) < 0) break; // EOF
+        if ( sam_read1(fp, header, b) < 0 ) break; // EOF
         if ( b->core.flag & (BAM_FUNMAP | BAM_FSECONDARY | BAM_FQCFAIL | BAM_FDUP) ) continue;
-        if ( (int)b->core.qual < min_mapQ ) continue;
+        if ( (int)b->core.qual < min_mapq ) continue;
 
         if (b->core.tid != prev_tid) {
-            for (iter=found_lmap.begin(); iter!=found_lmap.end(); iter++) {
-                if (iter->second > min_l && depth_map[iter->first] > min_depth_l && ((float)min_l)/((float)depth_map[iter->first]) > min_ratio_l) {
-                    callback(header->target_name[prev_tid], iter->first - 1);
-                }
-            }
+            check_cleavage(header->target_name[prev_tid], lpos-2, overhang, min_f, min_r, min_score, min_depth_f, min_depth_r, min_ratio_f, min_ratio_r, fmap, rmap, dmap, callback);
             prev_tid = b->core.tid;
-            rmap.clear();
-            found_lmap.clear();
-            found_rmap.clear();
-            rfound = false;
-            found_rpos = 0;
         }
 
         n_cigar = b->core.n_cigar;
 
-        // Due to unaligned memory operation (not supported by Emscripten)
-        // https://github.com/kripken/emscripten/issues/4774
+        // Due to unaligned memory operation
+        // https://github.com/kripken/emscripten/issues/4774 
         memcpy(cigar, bam_get_cigar(b), n_cigar*sizeof(uint32_t));
- 
-        lpos = rpos = b->core.pos;
-        lpos++; rpos += bam_cigar2rlen(n_cigar, cigar); // 1-based coordinate
 
-        for (i=lpos; i<rpos+1; i++) {
-            if (depth_map.find(i) == depth_map.end())
-                depth_map[i] = 1;
-            else
-                depth_map[i]++;
-        }
+        lpos = b->core.pos+1;
+        rpos = b->core.pos + bam_cigar2rlen(n_cigar, cigar);
 
-        if (rmap.find(rpos) == rmap.end())
-            rmap[rpos] = 1;
-        else {
-            rmap[rpos]++;
-            tmp = 0;
-            for (i=0; i<window_size; i++) {
-                if (rmap.find(rpos-i) != rmap.end()) {
-                    tmp += rmap[rpos-i];
-                }
+        if (bam_is_rev(b)) {
+            inc_map(rmap, rpos); // 1-based coordinate
+        } else {
+            if (plpos != lpos) {
+                if (overhang > 0)
+                    max_examin_pos = lpos-overhang-2;
+                else
+                    max_examin_pos = lpos-3;
+
+                check_cleavage(header->target_name[b->core.tid], max_examin_pos, overhang, min_f, min_r, min_score, min_depth_f, min_depth_r, min_ratio_f, min_ratio_r, fmap, rmap, dmap, callback);
+
+                for (iter=fmap.begin(); (iter->first) <= max_examin_pos && iter != fmap.end(); ) // map is always sorted by its key (http://www.cplusplus.com/reference/map/map/)
+                    fmap.erase(iter++);
+
+                for (iter=rmap.begin(); (iter->first) <= max_examin_pos+overhang && iter != rmap.end(); )
+                    rmap.erase(iter++);
+
+                min_for_pos = max_examin_pos-2;
+                min_rev_pos = max_examin_pos-3+overhang;
+                for (iter=dmap.begin(); (iter->first) <= (min_for_pos<min_rev_pos?min_for_pos:min_rev_pos) && iter != dmap.end(); )
+                    dmap.erase(iter++);
+
+                plpos = lpos;
             }
-            if (tmp > min_r) {
-                rfound = true;
-                if (found_rpos < rpos)
-                    found_rpos = rpos; // Updated several times - it will have largest value in the end
-                found_rcnt = tmp;
-            }
+            inc_map(fmap, lpos);
         }
-
-        for (iter=rmap.begin(); iter!=rmap.end(); ) {
-            if (iter->first < lpos)
-                rmap.erase(iter++);
-            else
-                iter++;
-        }
-
-        if (rfound && found_rpos < lpos) {
-            // This block will be executed only once after finding rpos
-            if (lpos < found_rpos + window_size + 1 && min_depth_r < depth_map[found_rpos] && ((float)found_rcnt)/((float)depth_map[found_rpos]) > min_ratio_r) {
-                found_rmap[found_rpos] = found_rcnt;
-                found_lmap[found_rpos + 1] = 1;
-            }
-            rfound = false;
-            found_rpos = 0;
-        }
-
-        for (iter=found_rmap.begin(); iter!=found_rmap.end(); ) {
-            if (lpos < iter->first + window_size + 1) {
-                found_lmap[iter->first + 1]++;
-                iter++;
-            } else {
-                found_rmap.erase(iter++);
-            }
-        }
-
-        for (iter=found_lmap.begin(); iter!=found_lmap.end(); ) {
-            if (lpos > iter->first + window_size - 1) {
-                if (iter->second > min_l && depth_map[iter->first] > min_depth_l && ((float)min_l)/((float)depth_map[iter->first]) > min_ratio_l) {
-                    callback(header->target_name[b->core.tid], iter->first - 1);
-                }
-                found_lmap.erase(iter++);
-            } else iter++;
-        }
-
-        for (iter=depth_map.begin(); iter!=depth_map.end(); ) {
-            if (iter->first < lpos - window_size)
-                depth_map.erase(iter++);
-            else
-                iter++;
-        }
+        for (i=lpos; i<rpos+1; i++)
+            inc_map(dmap, i);
     }
 
-    for (iter=found_lmap.begin(); iter!=found_lmap.end(); iter++) {
-        if (iter->second > min_l && depth_map[iter->first] > min_depth_l && ((float)min_l)/((float)depth_map[iter->first]) > min_ratio_l) {
-            callback(header->target_name[prev_tid], iter->first - 1);
-        }
-    }
- 
+    check_cleavage(header->target_name[b->core.tid], lpos, overhang, min_f, min_r, min_score, min_depth_f, min_depth_r, min_ratio_f, min_ratio_r, fmap, rmap, dmap, callback);
 
     bam_destroy1(b);
     bam_hdr_destroy(header);

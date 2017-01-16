@@ -70,7 +70,7 @@ Htsfile.prototype.read = function (ptr, nbytes) {
 
             this.cursor += nbytes;
         } else {
-            // read whole buffer
+            // read from cursor to the end of buffer
             buf = this.buf.slice(this.cursor, this.bufsize);
             heap.set(new Int8Array(buf), nbytesread);
 
@@ -118,15 +118,15 @@ function hts_close(fd) {
     Module._bgzf_close_js(fd);
 }
 
-function run_digenome(fd) {
-    Module._run_digenome(fd);
+function run_digenome(fd, min_mapq, gap, min_read_f, min_read_r, min_score, min_depth, min_ratio) {
+    Module._run_digenome(fd, min_mapq, gap, min_read_f, min_read_r, min_score, min_depth, min_ratio);
 }
 
-function run_pileup(fd) {
-    Module._run_pileup(fd);
-}
+//function run_pileup(fd) {
+//    Module._run_pileup(fd);
+//}
 
 self["hts_open"] = hts_open;
 self["hts_close"] = hts_close;
 self["run_digenome"] = run_digenome;
-self["run_pileup"] = run_pileup;
+//self["run_pileup"] = run_pileup;
