@@ -1,8 +1,13 @@
-#include "htslib/hts.h"
-#include "htslib/bgzf.h"
-
 #include <string.h>
 #include <stdlib.h>
+
+#include "htslib/hts.h"
+#include "htslib/bgzf.h"
+#include "htslib/cram.h"
+
+#include "htslib/kseq.h"
+
+KSTREAM_INIT2(, BGZF*, bgzf_read, 65536)
 
 htsFile *hts_hopen_js(struct hFILE* hfile, char *fn, const char* mode) {
     htsFile *fp = (htsFile*)calloc(1, sizeof(htsFile));
@@ -36,7 +41,6 @@ htsFile *hts_hopen_js(struct hFILE* hfile, char *fn, const char* mode) {
         if (fp->fp.bgzf == NULL) goto error;
         fp->is_bin = 1;
         break;
-/*
     case cram:
         fp->fp.cram = cram_dopen(hfile, fn, simple_mode);
         if (fp->fp.cram == NULL) goto error;
@@ -60,13 +64,9 @@ htsFile *hts_hopen_js(struct hFILE* hfile, char *fn, const char* mode) {
         else
             fp->fp.hfile = hfile;
         break;
-*/
     default:
         goto error;
     }
-
-    //if (opts)
-    //    hts_process_opts(fp, opts);
 
     return fp;
 

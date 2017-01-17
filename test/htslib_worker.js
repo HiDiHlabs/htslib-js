@@ -1,1 +1,0 @@
-../htslib_worker.js

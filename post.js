@@ -107,7 +107,7 @@ function hts_open(fileobj) {
     }
     htsfiles[fd] = f;
 
-    if (Module._bgzf_open_js(fd) == 0)
+    if (Module._hts_open_js(fd) == 0)
         return fd;
     else
         throw "Something wrong happened while opening file.";
@@ -115,18 +115,8 @@ function hts_open(fileobj) {
 }
 
 function hts_close(fd) {
-    Module._bgzf_close_js(fd);
+    Module._hts_close_js(fd);
 }
-
-function run_digenome(fd, min_mapq, gap, min_read_f, min_read_r, min_score, min_depth, min_ratio) {
-    Module._run_digenome(fd, min_mapq, gap, min_read_f, min_read_r, min_score, min_depth, min_ratio);
-}
-
-//function run_pileup(fd) {
-//    Module._run_pileup(fd);
-//}
 
 self["hts_open"] = hts_open;
 self["hts_close"] = hts_close;
-self["run_digenome"] = run_digenome;
-//self["run_pileup"] = run_pileup;
