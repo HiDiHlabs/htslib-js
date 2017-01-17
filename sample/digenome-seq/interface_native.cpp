@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include "htslib/sam.h"
 #include "digenome.h"
-#include "pileup.h"
 
 using namespace std;
 

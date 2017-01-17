@@ -11,9 +11,12 @@ set -x
 RELEASE_FLAGS='-O3'
 HEADERS='-I. -Ihtslib -Izlib'
 CC=/usr/local/emscripten/em++
+AR=/usr/local/emscripten/emar
+RANLIB=/usr/local/emscripten/emranlib
 
-$CC $HEADERS $RELEASE_FLAGS hfile_js.cpp -o hfile_js.bc
-$CC $HEADERS $RELEASE_FLAGS hts_js.cpp -o hts_js.bc
-$CC $HEADERS $RELEASE_FLAGS interface.cpp -o interface.bc
+$CC $HEADERS $RELEASE_FLAGS -c hfile_js.cpp -o hfile_js.o
+$CC $HEADERS $RELEASE_FLAGS -c hts_js.cpp -o hts_js.o
+$CC $HEADERS $RELEASE_FLAGS -c interface.cpp -o interface.o
 
-$CC interface.bc hfile_js.bc hts_js.bc htslib/libhts.a zlib/libz.a $RELEASE_FLAGS -o libhts_js.a
+$AR rc libhts_js.a hfile_js.o hts_js.o interface.o
+$RANLIB libhts_js.a

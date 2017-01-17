@@ -23,7 +23,7 @@ static int read_bam(void *data, bam1_t *b) {
     return ret;
 }
 
-void pileup(htsFile *fp, void (*callback)(char*, int, int) ) {
+void pileup(htsFile *fp, int min_depth, void (*callback)(char*, int, int) ) {
     bam_hdr_t *hdr = sam_hdr_read(fp);
     int cnt, ret, pos, qpos, tid, n_plp, depth, j;
 
@@ -48,7 +48,7 @@ void pileup(htsFile *fp, void (*callback)(char*, int, int) ) {
             else if (bam_get_qual(p->b)[p->qpos] < 20) ++m;
         }
         depth = n_plp - m;
-        if (depth > 1000) {
+        if (depth > min_depth) {
             callback(data->hdr->target_name[tid], pos+1, depth);
         }
     }
