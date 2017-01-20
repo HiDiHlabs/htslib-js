@@ -1,7 +1,7 @@
 
 var htsfiles = {};
 
-function Htsfile(fileobj) {
+function Htsfile(fileobj, progress_callback) {
     this.reader = new FileReaderSync();
     this.offset = 0;
     this.cursor = -1;
@@ -10,6 +10,7 @@ function Htsfile(fileobj) {
     this.eof = 0;
     this.last_chunk = 0;
     this.fileobj = fileobj;
+    this.progress_callback = progress_callback;
 }
 
 Htsfile.prototype._getchunk = function () {
@@ -23,7 +24,8 @@ Htsfile.prototype._getchunk = function () {
     this.offset += this.bufsize;
     this.buf = this.reader.readAsArrayBuffer(blob);
     this.cursor = 0;
-    self.postMessage([0, this.offset/this.fileobj.size*100]);
+    if (this.progress_callback)
+        this.progress_callback(this.offset/this.fileobj.size*100);
 }
 
 Htsfile.prototype.seek = function (offset, whence) {
@@ -66,15 +68,15 @@ Htsfile.prototype.read = function (ptr, nbytes) {
             // read part of buffer
             buf = this.buf.slice(this.cursor, this.cursor+nbytes);
             heap.set(new Int8Array(buf));
-            nbytesread = nbytes;
+            nbytesread = buf.byteLength;
 
             this.cursor += nbytes;
         } else {
             // read from cursor to the end of buffer
             buf = this.buf.slice(this.cursor, this.bufsize);
             heap.set(new Int8Array(buf), nbytesread);
+            nbytesread += buf.byteLength;
 
-            nbytesread += this.bufsize - this.cursor;
             this.cursor = -1;
         }
         nbytes -= nbytesread;
@@ -99,15 +101,16 @@ function js_read(fd, ptr, nbytes) {
     return htsfiles[fd].read(ptr, nbytes);
 }
 
-function hts_open(fileobj) {
-    var f = new Htsfile(fileobj);
+function hts_open(fileobj, progress_callback) {
     for (var fd=1;;fd++) {
         if (htsfiles[fd] === undefined)
             break;
     }
-    htsfiles[fd] = f;
 
-    if (Module._hts_open_js(fd) == 0)
+    htsfiles[fd] = new Htsfile(fileobj, progress_callback);;
+
+    var hts_open_js = cwrap('hts_open_js', 'number', ['number', 'string']);
+    if (hts_open_js(fd, fileobj.name) == 0)
         return fd;
     else
         throw "Something wrong happened while opening file.";

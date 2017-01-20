@@ -198,6 +198,7 @@ ssize_t hgetdelim(char *buffer, size_t size, int delim, hFILE *fp)
     if (got < 0) return -1; /* Error on refill. */
 
     buffer[copied] = '\0';  /* EOF, return anything that was copied. */
+
     return copied;
 }
 

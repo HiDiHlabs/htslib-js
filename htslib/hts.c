@@ -820,7 +820,7 @@ htsFile *hts_hopen(struct hFILE *hfile, const char *fn, const char *mode)
         break;
 
     default:
-        goto error;
+        fp->fp.hfile = hfile; // just store hfile
     }
 
     if (opts)

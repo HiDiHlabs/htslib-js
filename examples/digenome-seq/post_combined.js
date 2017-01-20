@@ -112,7 +112,8 @@ function hts_open(fileobj) {
     }
     htsfiles[fd] = f;
 
-    if (Module._hts_open_js(fd) == 0)
+    var hts_open_js = cwrap('hts_open_js', 'number', ['number', 'string']);
+    if (hts_open_js(fd, fileobj.name) == 0)
         return fd;
     else
         throw "Something wrong happened while opening file.";
