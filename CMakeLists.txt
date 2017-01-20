@@ -45,6 +45,18 @@ configure_file(config.h.in
 file(WRITE ${PROJECT_BINARY_DIR}/version.h "#define HTS_VERSION \"${PACKAGE_VERSION}\"")
 
 
+# Include directories
+
+# try setting EMPSCRIPTEN_INCLUDE_DIR to emscripten/system/include
+include_directories(
+    ${EMSCRIPTEN_INCLUDE_DIR}
+    ${PROJECT_BINARY_DIR}
+    ${PROJECT_BINARY_DIR}/zlib
+    htslib
+    htslib/curl
+    zlib
+)
+
 # zlib
 
 add_subdirectory(zlib)
@@ -53,52 +65,52 @@ add_subdirectory(zlib)
 # htslib
 
 set(SOURCES
-        htslib/hfile_internal.h
-        htslib/hts_internal.h
-        htslib/thread_pool_internal.h
+    htslib/hfile_internal.h
+    htslib/hts_internal.h
+    htslib/thread_pool_internal.h
 
-        htslib/bgzf.c
-        htslib/bgzip.c
-        htslib/errmod.c
-        htslib/faidx.c
-        htslib/hfile.c
-        htslib/hfile_net.c
-        htslib/hts.c
-        htslib/htsfile.c
-        htslib/kfunc.c
-        htslib/knetfile.c
-        htslib/kstring.c
-        htslib/md5.c
-        htslib/probaln.c
-        htslib/realn.c
-        htslib/regidx.c
-        htslib/sam.c
-        htslib/synced_bcf_reader.c
-        htslib/tabix.c
-        htslib/tbx.c
-        htslib/thread_pool.c
-        htslib/vcf.c
-        htslib/vcf_sweep.c
-        htslib/vcfutils.c
+    htslib/bgzf.c
+    htslib/bgzip.c
+    htslib/errmod.c
+    htslib/faidx.c
+    htslib/hfile.c
+    htslib/hfile_net.c
+    htslib/hts.c
+    htslib/htsfile.c
+    htslib/kfunc.c
+    htslib/knetfile.c
+    htslib/kstring.c
+    htslib/md5.c
+    htslib/probaln.c
+    htslib/realn.c
+    htslib/regidx.c
+    htslib/sam.c
+    htslib/synced_bcf_reader.c
+    htslib/tabix.c
+    htslib/tbx.c
+    htslib/thread_pool.c
+    htslib/vcf.c
+    htslib/vcf_sweep.c
+    htslib/vcfutils.c
 
-        htslib/cram/cram_codecs.c
-        htslib/cram/mFILE.c
-        htslib/cram/cram_decode.c
-        htslib/cram/open_trace_file.c
-        htslib/cram/cram_encode.c
-        htslib/cram/pooled_alloc.c
-        htslib/cram/cram_external.c
-        htslib/cram/rANS_static.c
-        htslib/cram/cram_index.c
-        htslib/cram/sam_header.c
-        htslib/cram/cram_io.c
-        htslib/cram/string_alloc.c
-        htslib/cram/cram_samtools.c
-        htslib/cram/vlen.c
-        htslib/cram/cram_stats.c
-        htslib/cram/zfio.c
-        htslib/cram/files.c
-        )
+    htslib/cram/cram_codecs.c
+    htslib/cram/mFILE.c
+    htslib/cram/cram_decode.c
+    htslib/cram/open_trace_file.c
+    htslib/cram/cram_encode.c
+    htslib/cram/pooled_alloc.c
+    htslib/cram/cram_external.c
+    htslib/cram/rANS_static.c
+    htslib/cram/cram_index.c
+    htslib/cram/sam_header.c
+    htslib/cram/cram_io.c
+    htslib/cram/string_alloc.c
+    htslib/cram/cram_samtools.c
+    htslib/cram/vlen.c
+    htslib/cram/cram_stats.c
+    htslib/cram/zfio.c
+    htslib/cram/files.c
+)
 
 if(ENABLE_PLUGINS)
     set(SOURCES ${SOURCES} htslib/plugin.c)
@@ -106,19 +118,53 @@ endif()
 
 if(IS_EMSCRIPTEN)
     set(SOURCES ${SOURCES}
-            hfile_js.cpp hfile_js.h
-            hts_js.cpp hts_js.h
-            interface.cpp interface.h
-            )
+        hfile_js.cpp hfile_js.h
+        hts_js.cpp hts_js.h
+        interface.cpp interface.h
+    )
 endif()
 
-# try setting EMPSCRIPTEN_INCLUDE_DIR to emscripten/system/include
-include_directories(
-        ${EMSCRIPTEN_INCLUDE_DIR}
-        ${PROJECT_BINARY_DIR}
-        htslib
-        htslib/curl
+add_library(hts ${SOURCES})
+link_libraries(hts
+    zlib
+    pthread
 )
 
-add_library(hts ${SOURCES})
-link_libraries(hts zlib)
+
+# Examples
+
+## pileup_bam
+
+if(IS_EMSCRIPTEN)
+    set(EXAMPLE_PILEUP_SOURCE 
+        examples/pileup_bam/pileup.cpp
+        examples/pileup_bam/interface_js.cpp
+    )
+else()
+    set(EXAMPLE_PILEUP_SOURCE
+        examples/pileup_bam/pileup.cpp
+        examples/pileup_bam/interface_native.cpp
+    )
+endif()
+
+add_executable(pileup_bam ${EXAMPLE_PILEUP_SOURCE})
+target_link_libraries(pileup_bam hts)
+
+
+## digenome-seq
+
+if(IS_EMSCRIPTEN)
+    set(EXAMPLE_PILEUP_SOURCE 
+        examples/digenome-seq/digenome.cpp
+        examples/digenome-seq/interface_js.cpp
+    )
+else()
+    set(EXAMPLE_PILEUP_SOURCE
+        examples/digenome-seq/digenome.cpp
+        examples/digenome-seq/interface_native.cpp
+    )
+endif()
+
+add_executable(digenome-seq ${EXAMPLE_PILEUP_SOURCE})
+target_link_libraries(digenome-seq hts)
+
