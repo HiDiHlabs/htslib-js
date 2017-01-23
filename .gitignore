@@ -2,3 +2,5 @@
 *.o
 *.lo
 *.swp
+
+zlib/zconf.h
