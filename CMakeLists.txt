@@ -100,13 +100,11 @@ set(SOURCES
     htslib/thread_pool_internal.h
 
     htslib/bgzf.c
-    htslib/bgzip.c
     htslib/errmod.c
     htslib/faidx.c
     htslib/hfile.c
     htslib/hfile_net.c
     htslib/hts.c
-    htslib/htsfile.c
     htslib/kfunc.c
     htslib/knetfile.c
     htslib/kstring.c
@@ -116,7 +114,6 @@ set(SOURCES
     htslib/regidx.c
     htslib/sam.c
     htslib/synced_bcf_reader.c
-    htslib/tabix.c
     htslib/tbx.c
     htslib/thread_pool.c
     htslib/vcf.c
@@ -187,7 +184,8 @@ target_link_libraries(pileup_bam hts)
 
 if(IS_EMSCRIPTEN)
     em_link_post_js(pileup_bam "${CMAKE_SOURCE_DIR}/post.js.in" "${CMAKE_SOURCE_DIR}/examples/pileup_bam/post.js.in")
-    em_add_tracked_link_flag(pileup_bam "-s EXPORT_ALL=1 -s LINKABLE=1")
+    #set_target_properties(pileup_bam PROPERTIES LINK_FLAGS "-s \"EXPORTED_FUNCTIONS=['_hts_open_js', '_hts_close_js', '_run_pileup']\"")
+    set_target_properties(pileup_bam PROPERTIES LINK_FLAGS "-s LINKABLE=1 -s EXPORT_ALL=1")
     add_custom_command(TARGET pileup_bam POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/examples/pileup_bam/test/pileup_bam.html ${PROJECT_BINARY_DIR}/examples/ && 
                 ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/examples/pileup_bam/test/pileup_bam-worker.js ${PROJECT_BINARY_DIR}/examples/
@@ -213,7 +211,7 @@ target_link_libraries(digenome-seq hts)
 
 if(IS_EMSCRIPTEN)
     em_link_post_js(digenome-seq "${CMAKE_SOURCE_DIR}/post.js.in" "examples/digenome-seq/post.js.in")
-    em_add_tracked_link_flag(digenome-seq "-s EXPORT_ALL=1 -s LINKABLE=1")
+    set_target_properties(digenome-seq PROPERTIES LINK_FLAGS "-s LINKABLE=1 -s EXPORT_ALL=1")
     add_custom_command(TARGET digenome-seq POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/examples/digenome-seq/test/digenome-seq.html ${PROJECT_BINARY_DIR}/examples/ && 
                 ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/examples/digenome-seq/test/digenome-seq-worker.js ${PROJECT_BINARY_DIR}/examples/

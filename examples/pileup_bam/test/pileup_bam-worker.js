@@ -1,4 +1,4 @@
-importScripts('pileup.js');
+importScripts('pileup_bam.js');
 
 progress_callback = function (p) {
     postMessage([1, p]);
