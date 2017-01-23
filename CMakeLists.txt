@@ -12,19 +12,18 @@ set(CMAKE_CXX_STANDARD 11)
 
 set(PACKAGE_VERSION "1.2.1-195-g81b173e")
 
-string(REGEX MATCH "nodejs\"$" IS_EMSCRIPTEN "${CMAKE_CROSSCOMPILING_EMULATOR}")
+set(CMAKE_BUILD_TYPE Release)
 
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
+    set(IS_EMSCRIPTEN TRUE)
+endif()
 
 # Create config.h
 
-check_library_exists(CommonCrypto CCHmac "" HAVE_COMMONCRYPTO)
 check_function_exists(fdatasync HAVE_FDATASYNC)
 check_function_exists(getpagesize HAVE_GETPAGESIZE)
 check_function_exists(gmtime_r HAVE_GMTIME_R)
-check_function_exists(HMAC HAVE_HMAC)
 check_include_files(inttypes.h HAVE_INTTYPES_H)
-check_library_exists(curl curl_easy_init "" HAVE_LIBCURL)
-check_library_exists(z deflate "" HAVE_LIBZ)
 check_include_files(memory.h HAVE_MEMORY_H)
 check_function_exists(mmap HAVE_MMAP)
 check_include_files(stdint.h HAVE_STDINT_H)
@@ -35,6 +34,25 @@ check_include_files(sys/param.h HAVE_SYS_PARAM_H)
 check_include_files(sys/stat.h HAVE_SYS_STAT_H)
 check_include_files(sys/types.h HAVE_SYS_TYPES_H)
 check_include_files(unistd.h HAVE_UNISTD_H)
+set(HAVE_LIBZ on)
+
+if(ENABLE_LIBCURL)
+    check_function_exists(CCHmac HAVE_COMMONCRYPTO)
+    check_library_exists(crypto HMAC "" HAVE_HMAC)
+    if(HAVE_COMMONCRYPTO OR HAVE_HMAC)
+        check_library_exists(curl curl_easy_init "" HAVE_LIBCURL)
+    else()
+        message(FATAL_ERROR "You need SSL development package to compile htslib with ENABLE_LIBCURL.")
+    endif()
+
+    if(NOT HAVE_LIBCURL)
+        message(FATAL_ERROR "You need curl development package to compile htslib with ENABLE_LIBCURL.")
+    endif()
+else()
+    set(HAVE_COMMONCRYPTO no)
+    set(HAVE_HMAC no)
+    set(HAVE_LIBCURL no)
+endif()
 
 configure_file(config.h.in
         ${PROJECT_BINARY_DIR}/config.h)
@@ -47,7 +65,7 @@ file(WRITE ${PROJECT_BINARY_DIR}/version.h "#define HTS_VERSION \"${PACKAGE_VERS
 
 # Include directories
 
-# try setting EMPSCRIPTEN_INCLUDE_DIR to emscripten/system/include
+# try setting EMSCRIPTEN_INCLUDE_DIR to emscripten/system/include
 include_directories(
     ${EMSCRIPTEN_INCLUDE_DIR}
     ${PROJECT_BINARY_DIR}
@@ -55,12 +73,22 @@ include_directories(
     htslib
     htslib/curl
     zlib
+    ${CMAKE_SOURCE_DIR}
 )
 
 # zlib
 
-add_subdirectory(zlib)
+if(IS_EMSCRIPTEN)
+    set( OFF64_T_run_result 
+         "8"
+         CACHE STRING "Result from TRY_RUN" FORCE)
 
+    set( OFF64_T_run_result__TRYRUN_OUTPUT 
+         "0"
+         CACHE STRING "Output from TRY_RUN" FORCE)
+endif()
+
+add_subdirectory(zlib)
 
 # htslib
 
@@ -112,6 +140,11 @@ set(SOURCES
     htslib/cram/files.c
 )
 
+if(ENABLE_LIBCURL)
+    set(SOURCES ${SOURCES} htslib/hfile_libcurl.c)
+    link_libraries(curl crypto)
+endif()
+
 if(ENABLE_PLUGINS)
     set(SOURCES ${SOURCES} htslib/plugin.c)
 endif()
@@ -120,16 +153,16 @@ if(IS_EMSCRIPTEN)
     set(SOURCES ${SOURCES}
         hfile_js.cpp hfile_js.h
         hts_js.cpp hts_js.h
+        faidx_js.cpp faidx_js.h
         interface.cpp interface.h
     )
 endif()
 
 add_library(hts ${SOURCES})
 link_libraries(hts
-    zlib
+    zlibstatic
     pthread
 )
-
 
 # Examples
 
@@ -148,7 +181,7 @@ else()
 endif()
 
 add_executable(pileup_bam ${EXAMPLE_PILEUP_SOURCE})
-target_link_libraries(pileup_bam hts)
+target_link_libraries(pileup_bam optimized hts)
 
 
 ## digenome-seq
@@ -166,5 +199,5 @@ else()
 endif()
 
 add_executable(digenome-seq ${EXAMPLE_PILEUP_SOURCE})
-target_link_libraries(digenome-seq hts)
+target_link_libraries(digenome-seq optimized hts)
 
