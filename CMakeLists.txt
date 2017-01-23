@@ -16,6 +16,8 @@ set(CMAKE_BUILD_TYPE Release)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
     set(IS_EMSCRIPTEN TRUE)
+    set(_LARGE_FILES 1)
+    set(_FILE_OFFSET_BITS 64)
 endif()
 
 # Create config.h
@@ -165,39 +167,55 @@ link_libraries(hts
 )
 
 # Examples
+set (EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/examples)
 
 ## pileup_bam
-
 if(IS_EMSCRIPTEN)
-    set(EXAMPLE_PILEUP_SOURCE 
+    set(EXAMPLE_SOURCE 
         examples/pileup_bam/pileup.cpp
         examples/pileup_bam/interface_js.cpp
     )
 else()
-    set(EXAMPLE_PILEUP_SOURCE
+    set(EXAMPLE_SOURCE
         examples/pileup_bam/pileup.cpp
         examples/pileup_bam/interface_native.cpp
     )
 endif()
 
-add_executable(pileup_bam ${EXAMPLE_PILEUP_SOURCE})
-target_link_libraries(pileup_bam optimized hts)
+add_executable(pileup_bam ${EXAMPLE_SOURCE})
+target_link_libraries(pileup_bam hts)
 
+if(IS_EMSCRIPTEN)
+    em_link_post_js(pileup_bam "${CMAKE_SOURCE_DIR}/post.js.in" "${CMAKE_SOURCE_DIR}/examples/pileup_bam/post.js.in")
+    em_add_tracked_link_flag(pileup_bam "-s EXPORT_ALL=1 -s LINKABLE=1")
+    add_custom_command(TARGET pileup_bam POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/examples/pileup_bam/test/pileup_bam.html ${PROJECT_BINARY_DIR}/examples/ && 
+                ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/examples/pileup_bam/test/pileup_bam-worker.js ${PROJECT_BINARY_DIR}/examples/
+    )
+endif()
 
 ## digenome-seq
 
 if(IS_EMSCRIPTEN)
-    set(EXAMPLE_PILEUP_SOURCE 
+    set(EXAMPLE_SOURCE 
         examples/digenome-seq/digenome.cpp
         examples/digenome-seq/interface_js.cpp
     )
 else()
-    set(EXAMPLE_PILEUP_SOURCE
+    set(EXAMPLE_SOURCE
         examples/digenome-seq/digenome.cpp
         examples/digenome-seq/interface_native.cpp
     )
 endif()
 
-add_executable(digenome-seq ${EXAMPLE_PILEUP_SOURCE})
-target_link_libraries(digenome-seq optimized hts)
+add_executable(digenome-seq ${EXAMPLE_SOURCE})
+target_link_libraries(digenome-seq hts)
 
+if(IS_EMSCRIPTEN)
+    em_link_post_js(digenome-seq "${CMAKE_SOURCE_DIR}/post.js.in" "examples/digenome-seq/post.js.in")
+    em_add_tracked_link_flag(digenome-seq "-s EXPORT_ALL=1 -s LINKABLE=1")
+    add_custom_command(TARGET digenome-seq POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/examples/digenome-seq/test/digenome-seq.html ${PROJECT_BINARY_DIR}/examples/ && 
+                ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/examples/digenome-seq/test/digenome-seq-worker.js ${PROJECT_BINARY_DIR}/examples/
+    )
+endif()
