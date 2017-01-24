@@ -50,7 +50,8 @@ struct __hts_idx_t {
 
 htsFile *hts_hopen_js(struct hFILE* hfile, char *fn, const char* mode) {
     htsFile *fp = (htsFile*)calloc(1, sizeof(htsFile));
-    char simple_mode[101], *cp, *opts, fasta_test;
+    char simple_mode[101], fasta_test;
+    const char *cp;
     simple_mode[100] = '\0';
 
     if (fp == NULL) goto error;
@@ -62,10 +63,8 @@ htsFile *hts_hopen_js(struct hFILE* hfile, char *fn, const char* mode) {
     if ((cp = strchr(mode, ','))) {
         strncpy(simple_mode, mode, cp-mode <= 100 ? cp-mode : 100);
         simple_mode[cp-mode] = '\0';
-        opts = cp+1;
     } else {
         strncpy(simple_mode, mode, 100);
-        opts = NULL;
     }
 
     if (strchr(simple_mode, 'r')) {
