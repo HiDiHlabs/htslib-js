@@ -40,7 +40,7 @@ static inline int fai_insert_index(faidx_t *idx, const char *name, int64_t len, 
     faidx1_t *v = &kh_value(idx->hash, k);
 
     if (! absent) {
-        fprintf(stderr, "[fai_build_core] ignoring duplicate sequence \"%s\" at byte offset %"PRIu64"\n", name, offset);
+        fprintf(stderr, "[fai_build_core] ignoring duplicate sequence \"%s\" at byte offset %" PRIu64 "\n", name, offset);
         free(name_key);
         return 0;
     }
@@ -75,7 +75,7 @@ faidx_t* fai_load_js(htsFile *f_fa, htsFile *f_fai, htsFile *f_gzi) {
     while (hts_getline(f_fai, KS_SEP_LINE, &f_fai->line) > 0) {
         for (p = f_fai->line.s; *p && isgraph_c(*p); ++p);
         *p = 0; ++p;
-        sscanf(p, "%"SCNd64"%"SCNu64"%d%d", &len, &offset, &line_blen, &line_len);
+        sscanf(p, "%" SCNd64 "%" SCNu64 "%d%d", &len, &offset, &line_blen, &line_len);
         if (fai_insert_index(fai, f_fai->line.s, len, line_len, line_blen, offset) != 0) {
             return NULL;
         }
