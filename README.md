@@ -28,7 +28,7 @@ On Windows:
    > emsdk activate
 
 After that, build htslib-js by running:
-   
+
 In POSIX environment:
    $ emcmake cmake .
    $ make
