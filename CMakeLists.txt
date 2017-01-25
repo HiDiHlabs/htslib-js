@@ -160,7 +160,6 @@ endif()
 add_library(hts ${SOURCES})
 link_libraries(hts
     zlibstatic
-    pthread
 )
 
 # Examples
@@ -180,12 +179,10 @@ else()
 endif()
 
 add_executable(pileup_bam ${EXAMPLE_SOURCE})
-target_link_libraries(pileup_bam hts)
+set (CMAKE_EXE_LINKER_FLAGS "--post-js ${CMAKE_SOURCE_DIR}/post.js.in -s LINKABLE=1 -s EXPORT_ALL=1")
 
 if(IS_EMSCRIPTEN)
-    em_link_post_js(pileup_bam "${CMAKE_SOURCE_DIR}/post.js.in" "${CMAKE_SOURCE_DIR}/examples/pileup_bam/post.js.in")
-    #set_target_properties(pileup_bam PROPERTIES LINK_FLAGS "-s \"EXPORTED_FUNCTIONS=['_hts_open_js', '_hts_close_js', '_run_pileup']\"")
-    set_target_properties(pileup_bam PROPERTIES LINK_FLAGS "-s LINKABLE=1 -s EXPORT_ALL=1")
+    set_target_properties(pileup_bam PROPERTIES LINK_FLAGS "--post-js ${CMAKE_SOURCE_DIR}/examples/pileup_bam/post.js.in")
     add_custom_command(TARGET pileup_bam POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/examples/pileup_bam/test/pileup_bam.html ${PROJECT_BINARY_DIR}/examples/ && 
                 ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/examples/pileup_bam/test/pileup_bam-worker.js ${PROJECT_BINARY_DIR}/examples/
@@ -207,11 +204,8 @@ else()
 endif()
 
 add_executable(digenome-seq ${EXAMPLE_SOURCE})
-target_link_libraries(digenome-seq hts)
-
 if(IS_EMSCRIPTEN)
-    em_link_post_js(digenome-seq "${CMAKE_SOURCE_DIR}/post.js.in" "examples/digenome-seq/post.js.in")
-    set_target_properties(digenome-seq PROPERTIES LINK_FLAGS "-s LINKABLE=1 -s EXPORT_ALL=1")
+    set_target_properties(digenome-seq PROPERTIES LINK_FLAGS "--post-js ${CMAKE_SOURCE_DIR}/examples/digenome-seq/post.js.in")
     add_custom_command(TARGET digenome-seq POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/examples/digenome-seq/test/digenome-seq.html ${PROJECT_BINARY_DIR}/examples/ && 
                 ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/examples/digenome-seq/test/digenome-seq-worker.js ${PROJECT_BINARY_DIR}/examples/
