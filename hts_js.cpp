@@ -50,7 +50,8 @@ struct __hts_idx_t {
 
 htsFile *hts_hopen_js(struct hFILE* hfile, char *fn, const char* mode) {
     htsFile *fp = (htsFile*)calloc(1, sizeof(htsFile));
-    char simple_mode[101], *cp, *opts, fasta_test;
+    char simple_mode[101], fasta_test;
+    const char *cp, *opts;
     simple_mode[100] = '\0';
 
     if (fp == NULL) goto error;
