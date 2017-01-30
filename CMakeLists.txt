@@ -94,58 +94,25 @@ add_subdirectory(zlib)
 
 # htslib
 
-set(SOURCES
-    htslib/hfile_internal.h
-    htslib/hts_internal.h
-    htslib/thread_pool_internal.h
+file(GLOB SOURCES "${CMAKE_SOURCE_DIR}/htslib/*.h" "${CMAKE_SOURCE_DIR}/htslib/*.c" "${CMAKE_SOURCE_DIR}/htslib/cram/*.c")
 
-    htslib/bgzf.c
-    htslib/errmod.c
-    htslib/faidx.c
-    htslib/hfile.c
-    htslib/hfile_net.c
-    htslib/hts.c
-    htslib/kfunc.c
-    htslib/knetfile.c
-    htslib/kstring.c
-    htslib/md5.c
-    htslib/probaln.c
-    htslib/realn.c
-    htslib/regidx.c
-    htslib/sam.c
-    htslib/synced_bcf_reader.c
-    htslib/tbx.c
-    htslib/thread_pool.c
-    htslib/vcf.c
-    htslib/vcf_sweep.c
-    htslib/vcfutils.c
-
-    htslib/cram/cram_codecs.c
-    htslib/cram/mFILE.c
-    htslib/cram/cram_decode.c
-    htslib/cram/open_trace_file.c
-    htslib/cram/cram_encode.c
-    htslib/cram/pooled_alloc.c
-    htslib/cram/cram_external.c
-    htslib/cram/rANS_static.c
-    htslib/cram/cram_index.c
-    htslib/cram/sam_header.c
-    htslib/cram/cram_io.c
-    htslib/cram/string_alloc.c
-    htslib/cram/cram_samtools.c
-    htslib/cram/vlen.c
-    htslib/cram/cram_stats.c
-    htslib/cram/zfio.c
-    htslib/cram/files.c
+list(REMOVE_ITEM SOURCES
+    "${CMAKE_SOURCE_DIR}/htslib/tabix.c"
+    "${CMAKE_SOURCE_DIR}/htslib/htsfile.c"
+    "${CMAKE_SOURCE_DIR}/htslib/bgzip.c"
+    "${CMAKE_SOURCE_DIR}/htslib/hfile_irods.c"
 )
 
+message(${SOURCES})
+
 if(ENABLE_LIBCURL)
-    set(SOURCES ${SOURCES} htslib/hfile_libcurl.c)
     link_libraries(curl crypto)
+else()
+    list(REMOVE_ITEM SOURCES "${CMAKE_SOURCE_DIR}/htslib/hfile_libcurl.c")
 endif()
 
-if(ENABLE_PLUGINS)
-    set(SOURCES ${SOURCES} htslib/plugin.c)
+if(!ENABLE_PLUGINS)
+    list(REMOVE_ITEM SOURCES "${CMAKE_SOURCE_DIR}/htslib/plugin.c")
 endif()
 
 if(IS_EMSCRIPTEN)

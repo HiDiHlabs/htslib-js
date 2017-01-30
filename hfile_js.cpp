@@ -3,6 +3,9 @@
 
 #include "hfile_js.h"
 
+#include <iostream>
+using namespace std;
+
 static ssize_t js_read(hFILE *fp, void *buffer, size_t nbytes)
 {
     ssize_t size = EM_ASM_INT({
