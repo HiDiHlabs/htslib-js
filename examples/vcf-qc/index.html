@@ -13,6 +13,7 @@
     let tmp;
 
     worker.onmessage = function(e) {
+        console.log('data returned');
         tmp = e.data;
     };
 

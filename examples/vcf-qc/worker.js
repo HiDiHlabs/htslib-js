@@ -3,6 +3,9 @@ importScripts('vcf-qc.js');
 const rainfall = cwrap('rainfall', null, ['string']);
 const prefix = '/data';
 
+let positions = {};
+let distances = {};
+
 onmessage = function(e) {
     FS.mkdir(prefix);
     FS.mount(WORKERFS, {
@@ -16,7 +19,11 @@ onmessage = function(e) {
         }
     }
 
-    Module.distances = {};
+    positions = {};
+    distances = {};
     rainfall(prefix + '/' + vcf_file);
-    postMessage(Module.distances);
+    postMessage({
+        positions: positions,
+        distances: distances
+    });
 };
