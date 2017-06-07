@@ -1,6 +1,24 @@
-#include "array.h"
 #include "emscripten.h"
 #include "htslib/vcf.h"
+
+int *get_nvar(const char* filename, int nseq) {
+    htsFile *file = bcf_open(filename, "r");
+    bcf_hdr_t *hdr = bcf_hdr_read(file);
+    bcf1_t *entry = bcf_init();
+
+    int *nvar = (int *) malloc(sizeof(int) * nseq);
+    for (int i = 0; i < nseq; ++i) {
+        nvar[i] = 0;
+    }
+    while (bcf_read(file, hdr, entry) == 0) {
+        nvar[entry->rid] += 1;
+    }
+
+    bcf_destroy(entry);
+    bcf_hdr_destroy(hdr);
+    bcf_close(file);
+    return nvar;
+}
 
 void rainfall(const char *filename) {
     // Initialise variables
@@ -8,6 +26,7 @@ void rainfall(const char *filename) {
     bcf_hdr_t *hdr = bcf_hdr_read(file);
     bcf1_t *prv_entry = bcf_init();
     bcf1_t *nxt_entry = bcf_init();
+    bcf1_t *swp_entry;
 
     // Get the sequence names
     bcf_hdr_set_samples(hdr, NULL, 0);
@@ -18,33 +37,44 @@ void rainfall(const char *filename) {
         exit(1);
     }
 
-    // Read the file
-    array_t *positions = malloc(sizeof(array_t) * nseq);
-    array_t *distances = malloc(sizeof(array_t) * nseq);
+    // Assign memory for positions and distances
+    int *nvar = get_nvar(filename, nseq);
+    int **positions = (int **) malloc(sizeof(int *) * nseq);
+    int **distances = (int **) malloc(sizeof(int *) * nseq);
     for (int i = 0; i < nseq; ++i) {
-        array_init(&distances[i]);
+        positions[i] = (int *) malloc(sizeof(int) * nvar[i]);
+        distances[i] = (int *) malloc(sizeof(int) * nvar[i]);
     }
+
+    // Iterator over variants
+    int cvar = 0;
     if (bcf_read(file, hdr, prv_entry) != 0) {
         printf("No variants in file");
         exit(1);
     }
     while (bcf_read(file, hdr, nxt_entry) == 0) {
         if (prv_entry->rid != nxt_entry->rid) {
-            printf("%d != %d\n", prv_entry->rid, nxt_entry->rid);
+            swp_entry = prv_entry;
             prv_entry = nxt_entry;
+            nxt_entry = swp_entry;
+            cvar = 0;
             continue;
         }
-        array_append(&(positions[prv_entry->rid]), prv_entry->pos);
-        array_append(&(distances[prv_entry->rid]), nxt_entry->pos - prv_entry->pos);
+        positions[prv_entry->rid][cvar] = prv_entry->pos;
+        distances[prv_entry->rid][cvar] = nxt_entry->pos - prv_entry->pos;
+        swp_entry = prv_entry;
         prv_entry = nxt_entry;
+        nxt_entry = swp_entry;
+        cvar += 1;
     }
 
     // Move data to browser
     for (int i = 0; i < nseq; ++i) {
         EM_ASM_({
-            positions[Pointer_stringify($0)] = new Int32Array(Module.HEAP32, $1, $2);
-            distances[Pointer_stringify($0)] = new Int32Array(Module.HEAP32, $3, $4);
-        }, seqnames[i], positions[i].data, positions[i].size, distances[i].data, distances[i].size);
+            positions[Pointer_stringify($0)] = new Int32Array(Module.HEAP32.buffer, $1, $3);
+            distances[Pointer_stringify($0)] = new Int32Array(Module.HEAP32.buffer, $2, $3);
+            console.log($3);
+        }, seqnames[i], positions[i], distances[i], nvar[i]);
     }
 
     // Free memory
@@ -52,8 +82,12 @@ void rainfall(const char *filename) {
     bcf_destroy(nxt_entry);
     bcf_hdr_destroy(hdr);
     bcf_close(file);
+
     for (int i = 0; i < nseq; ++i) {
-        array_free(&distances[i]);
+        free(positions[i]);
+        free(distances[i]);
     }
     free(distances);
+    free(positions);
+    free(nvar);
 }

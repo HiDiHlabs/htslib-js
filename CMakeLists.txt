@@ -184,7 +184,6 @@ endif()
 
 if(IS_EMSCRIPTEN)
     set(EXAMPLE_SOURCE
-        examples/vcf-qc/array.c examples/vcf-qc/array.h
         examples/vcf-qc/vcf_qc.c
     )
     add_executable(vcf-qc ${EXAMPLE_SOURCE})
