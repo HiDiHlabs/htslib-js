@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>vcf-qc</title>
+</head>
+<body>
+<label for="file_input">Input (select VCF and index):</label>
+<input id="file_input" type="file" multiple/>
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha256-k2WSCIexGzOj3Euiig+TlR8gA0EmPjuc79OEeY5L45g=" crossorigin="anonymous"></script>
+<script>
+    const worker = new Worker('vcf-qc.worker.js');
+    let tmp;
+
+    worker.onmessage = function(e) {
+        tmp = e.data;
+    };
+
+    $('#file_input').change(function() {
+        worker.postMessage($('#file_input')[0].files);
+    });
+</script>
+</body>
+</html>

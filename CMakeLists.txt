@@ -179,3 +179,27 @@ if(IS_EMSCRIPTEN)
                 ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/examples/digenome-seq/test/digenome-seq-worker.js ${PROJECT_BINARY_DIR}/examples/
     )
 endif()
+
+## vcf-qc
+
+if(IS_EMSCRIPTEN)
+    set(EXAMPLE_SOURCE
+        examples/vcf-qc/array.c examples/vcf-qc/array.h
+        examples/vcf-qc/vcf_qc.c
+    )
+    add_executable(vcf-qc ${EXAMPLE_SOURCE})
+    target_link_libraries(vcf-qc "-s ASSERTIONS=2")
+
+    add_custom_target(copy)
+    add_custom_command(
+            TARGET copy POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+                ${CMAKE_SOURCE_DIR}/examples/vcf-qc/worker.js
+                ${CMAKE_BINARY_DIR}/examples/vcf-qc.worker.js)
+    add_custom_command(
+            TARGET copy POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+                ${CMAKE_SOURCE_DIR}/examples/vcf-qc/index.html
+                ${CMAKE_BINARY_DIR}/examples/vcf-qc.html)
+    add_dependencies(vcf-qc copy)
+endif()
