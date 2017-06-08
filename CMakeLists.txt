@@ -71,26 +71,10 @@ file(WRITE ${PROJECT_BINARY_DIR}/version.h "#define HTS_VERSION \"${PACKAGE_VERS
 include_directories(
     ${EMSCRIPTEN_INCLUDE_DIR}
     ${PROJECT_BINARY_DIR}
-    ${PROJECT_BINARY_DIR}/zlib
     htslib
     htslib/curl
-    zlib
     ${CMAKE_SOURCE_DIR}
 )
-
-# zlib
-
-if(IS_EMSCRIPTEN)
-    set( OFF64_T_run_result
-         "8"
-         CACHE STRING "Result from TRY_RUN" FORCE)
-
-    set( OFF64_T_run_result__TRYRUN_OUTPUT
-         "0"
-         CACHE STRING "Output from TRY_RUN" FORCE)
-endif()
-
-add_subdirectory(zlib)
 
 # htslib
 
@@ -115,7 +99,6 @@ if(!ENABLE_PLUGINS)
     list(REMOVE_ITEM SOURCES "${CMAKE_SOURCE_DIR}/htslib/plugin.c")
 endif()
 
-set(LIBRARIES zlibstatic)
 if(IS_EMSCRIPTEN)
     set(SOURCES ${SOURCES}
         hfile_js.cpp hfile_js.h
@@ -123,14 +106,33 @@ if(IS_EMSCRIPTEN)
         faidx_js.cpp faidx_js.h
         interface.cpp interface.h
     )
-else()
-    set(LIBRARIES ${LIBRARIES} pthread)
 endif()
 
 add_library(hts ${SOURCES})
-link_libraries(hts ${LIBRARIES})
+target_link_libraries(hts z pthread)
+if (IS_EMSCRIPTEN)
+    target_compile_options(hts PRIVATE "-s" "USE_ZLIB=1")
+    target_link_libraries(hts "-s USE_ZLIB=1")
+endif()
+
+
+# Executables
+
+add_executable(bgzip htslib/bgzip.c)
+target_link_libraries(bgzip hts)
+target_compile_options(bgzip PRIVATE "-s" "USE_ZLIB=1")
+
+add_executable(htsfile htslib/htsfile.c)
+target_link_libraries(htsfile hts)
+target_compile_options(htsfile PRIVATE "-s" "USE_ZLIB=1")
+
+add_executable(tabix htslib/tabix.c)
+target_link_libraries(tabix hts)
+target_compile_options(tabix PRIVATE "-s" "USE_ZLIB=1")
+
 
 # Examples
+
 set (EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/examples)
 
 ## pileup_bam
@@ -147,8 +149,10 @@ else()
 endif()
 
 add_executable(pileup_bam ${EXAMPLE_SOURCE})
+target_link_libraries(pileup_bam hts)
 
 if(IS_EMSCRIPTEN)
+    target_compile_options(pileup_bam PRIVATE "-s" "USE_ZLIB=1")
     set (CMAKE_EXE_LINKER_FLAGS "--post-js ${CMAKE_SOURCE_DIR}/post.js.in -s LINKABLE=1 -s EXPORT_ALL=1")
     set_target_properties(pileup_bam PROPERTIES LINK_FLAGS "--post-js ${CMAKE_SOURCE_DIR}/examples/pileup_bam/post.js.in")
     add_custom_command(TARGET pileup_bam POST_BUILD
@@ -172,7 +176,9 @@ else()
 endif()
 
 add_executable(digenome-seq ${EXAMPLE_SOURCE})
+target_link_libraries(digenome-seq hts)
 if(IS_EMSCRIPTEN)
+    target_compile_options(digenome-seq PRIVATE "-s" "USE_ZLIB=1")
     set_target_properties(digenome-seq PROPERTIES LINK_FLAGS "--post-js ${CMAKE_SOURCE_DIR}/examples/digenome-seq/post.js.in")
     add_custom_command(TARGET digenome-seq POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/examples/digenome-seq/test/digenome-seq.html ${PROJECT_BINARY_DIR}/examples/ &&
@@ -183,11 +189,9 @@ endif()
 ## vcf-qc
 
 if(IS_EMSCRIPTEN)
-    set(EXAMPLE_SOURCE
-        examples/vcf-qc/vcf_qc.c
-    )
-    add_executable(vcf-qc ${EXAMPLE_SOURCE})
-    target_link_libraries(vcf-qc "-s ASSERTIONS=2")
+    add_executable(vcf-qc examples/vcf-qc/vcf_qc.c)
+    target_link_libraries(vcf-qc hts)
+    target_compile_options(vcf-qc PRIVATE "-s" "USE_ZLIB=1")
 
     add_custom_target(copy)
     add_custom_command(
