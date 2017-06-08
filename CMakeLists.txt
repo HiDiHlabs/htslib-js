@@ -10,10 +10,6 @@ include(CheckFunctionExists)
 
 set(CMAKE_CXX_STANDARD 11)
 
-set(PACKAGE_VERSION "1.2.1-195-g81b173e")
-
-set(CMAKE_BUILD_TYPE Release)
-
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
     set(IS_EMSCRIPTEN TRUE)
     set(_LARGE_FILES 1)
@@ -62,6 +58,12 @@ configure_file(config.h.in
 
 # Create version.h
 
+execute_process(
+    COMMAND git describe --always --dirty
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/htslib
+    OUTPUT_VARIABLE PACKAGE_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
 file(WRITE ${PROJECT_BINARY_DIR}/version.h "#define HTS_VERSION \"${PACKAGE_VERSION}\"")
 
 
@@ -120,15 +122,18 @@ endif()
 
 add_executable(bgzip htslib/bgzip.c)
 target_link_libraries(bgzip hts)
-target_compile_options(bgzip PRIVATE "-s" "USE_ZLIB=1")
 
 add_executable(htsfile htslib/htsfile.c)
 target_link_libraries(htsfile hts)
-target_compile_options(htsfile PRIVATE "-s" "USE_ZLIB=1")
 
 add_executable(tabix htslib/tabix.c)
 target_link_libraries(tabix hts)
-target_compile_options(tabix PRIVATE "-s" "USE_ZLIB=1")
+
+if (IS_EMSCRIPTEN)
+    target_compile_options(bgzip PRIVATE "-s" "USE_ZLIB=1")
+    target_compile_options(htsfile PRIVATE "-s" "USE_ZLIB=1")
+    target_compile_options(tabix PRIVATE "-s" "USE_ZLIB=1")
+endif ()
 
 
 # Examples
