@@ -71,10 +71,11 @@ void rainfall(const char *filename) {
     // Move data to browser
     for (int i = 0; i < nseq; ++i) {
         EM_ASM_({
-            positions[Pointer_stringify($0)] = new Int32Array(Module.HEAP32.buffer, $1, $3);
-            distances[Pointer_stringify($0)] = new Int32Array(Module.HEAP32.buffer, $2, $3);
-            console.log($3);
-        }, seqnames[i], positions[i], distances[i], nvar[i]);
+            chromosomes[$0] = new Object();
+            chromosomes[$0].name = Pointer_stringify($1);
+            chromosomes[$0].x = new Int32Array(Module.HEAP32.buffer, $2, $4);
+            chromosomes[$0].y = new Int32Array(Module.HEAP32.buffer, $3, $4);
+        }, i, seqnames[i], positions[i], distances[i], nvar[i] - 1);
     }
 
     // Free memory

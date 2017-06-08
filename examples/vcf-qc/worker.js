@@ -3,8 +3,7 @@ importScripts('vcf-qc.js');
 const rainfall = cwrap('rainfall', null, ['string']);
 const prefix = '/data';
 
-let positions = {};
-let distances = {};
+let chromosomes = [];
 
 onmessage = function(e) {
     FS.mkdir(prefix);
@@ -19,11 +18,7 @@ onmessage = function(e) {
         }
     }
 
-    positions = {};
-    distances = {};
+    chromosomes = [];
     rainfall(prefix + '/' + vcf_file);
-    postMessage({
-        positions: positions,
-        distances: distances
-    });
+    postMessage(chromosomes);
 };
