@@ -59,10 +59,10 @@
             height: 600,
             width: 800,
 
-            yaxis1: { domain: [0.75, 1], range: [0, max], anchor: 'x1' },
-            yaxis2: { domain: [0.5, 0.74], range: [0, max], anchor: 'x1' },
-            yaxis3: { domain: [0.25, 0.49], range: [0, max], anchor: 'x1' },
-            yaxis4: { domain: [0, 0.24], range: [0, max], anchor: 'x1' }
+            yaxis1: { domain: [0.75, 1], range: [0, max], anchor: 'x1', type: 'log', autorange: true },
+            yaxis2: { domain: [0.5, 0.74], range: [0, max], anchor: 'x1', type: 'log', autorange: true },
+            yaxis3: { domain: [0.25, 0.49], range: [0, max], anchor: 'x1', type: 'log', autorange: true },
+            yaxis4: { domain: [0, 0.24], range: [0, max], anchor: 'x1', type: 'log', autorange: true }
         };
         let lengths = [chrs.chr1, chrs.chr5, chrs.chr9, chrs.chr13, chrs.chr17, chrs.chr21];
         let total = lengths.reduce((a, b) => a + b, 0);
