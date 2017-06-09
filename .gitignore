@@ -1,3 +1,6 @@
+.idea
+cmake-*
+
 *.bc
 *.o
 *.lo

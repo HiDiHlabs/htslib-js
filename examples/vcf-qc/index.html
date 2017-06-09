@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>vcf-qc</title>
+</head>
+<body>
+<label for="file_input">Input (select VCF and index):</label>
+<input id="file_input" type="file" multiple/>
+<div id="plot" style="width: 800px; height: 600px;"></div>
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha256-k2WSCIexGzOj3Euiig+TlR8gA0EmPjuc79OEeY5L45g=" crossorigin="anonymous"></script>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script>
+    const worker = new Worker('vcf-qc.worker.js');
+    const chrs = {
+        chr1: 248956422,
+        chr2: 242193529,
+        chr3: 198295559,
+        chr4: 190214555,
+        chr5: 181538259,
+        chr6: 170805979,
+        chr7: 159345973,
+        chr8: 145138636,
+        chr9: 138394714,
+        chr10: 133797422,
+        chr11: 135086622,
+        chr12: 133275309,
+        chr13: 114364328,
+        chr14: 107043718,
+        chr15: 101991189,
+        chr16: 90338345,
+        chr17: 83257441,
+        chr18: 80373285,
+        chr19: 58617616,
+        chr20: 64444167,
+        chr21: 46709983,
+        chr22: 50818468,
+        chrX: 156040895,
+        chrY: 57227415
+    };
+    var data;
+    var layout;
+
+    worker.onmessage = function(e) {
+        data = e.data;
+        let max = 0;
+        for (let i = 0; i < data.length; ++i) {
+            let trace = data[i];
+            trace.x = Array.from(trace.x);
+            trace.y = Array.from(trace.y);
+            trace.xaxis = 'x' + (Math.floor(i / 4) + 1);
+            trace.yaxis = 'y' + (i % 4 + 1);
+            trace.mode = 'markers';
+            max = Math.max(max, Math.max(...trace.y));
+        }
+
+        layout = {
+            title: 'Rainfall Plot',
+            height: 600,
+            width: 800,
+
+            yaxis1: { domain: [0.75, 1], range: [0, max], anchor: 'x1', type: 'log', autorange: true },
+            yaxis2: { domain: [0.5, 0.74], range: [0, max], anchor: 'x1', type: 'log', autorange: true },
+            yaxis3: { domain: [0.25, 0.49], range: [0, max], anchor: 'x1', type: 'log', autorange: true },
+            yaxis4: { domain: [0, 0.24], range: [0, max], anchor: 'x1', type: 'log', autorange: true }
+        };
+        let lengths = [chrs.chr1, chrs.chr5, chrs.chr9, chrs.chr13, chrs.chr17, chrs.chr21];
+        let total = lengths.reduce((a, b) => a + b, 0);
+        let current = 0;
+        for (let i = 0; i < lengths.length; ++i) {
+            layout['xaxis' + (i + 1)] = {
+                domain: [current / total, (current + lengths[i]) / total - 0.01],
+                range: [0, lengths[i]],
+                anchor: 'y4'
+            };
+            current += lengths[i];
+        }
+
+        Plotly.newPlot('plot', data, layout);
+    };
+
+    $('#file_input').change(function() {
+        worker.postMessage($('#file_input')[0].files);
+    });
+</script>
+</body>
+</html>

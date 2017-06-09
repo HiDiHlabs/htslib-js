@@ -1,0 +1,44 @@
+<html>
+<head>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.3.2/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anymous"></script>
+<script>
+var w = new Worker("pileup_bam-worker.js");
+
+function run(cmd) {
+    var bam = document.getElementById("bam").files[0];
+    var bai = document.getElementById("bai").files.length?document.getElementById("bai").files[0]:0;
+    var fa = document.getElementById("fa").files.length?document.getElementById("fa").files[0]:0;
+    var fai = document.getElementById("fai").files.length?document.getElementById("fai").files[0]:0;
+    var reg = $("#reg").val();
+    w.onmessage = function (p) {
+        if (p.data[0] == 0) {
+            $("#bamprogress").css("width", p.data[1] + "%");
+        } else if (p.data[0] == 2) {
+            $("#result").prepend("<p>Position: " + p.data[1] + ":" + p.data[2] + ", Reference Base: " + p.data[3] + ", Depth: " + p.data[4] + "</p>");
+        } else if (p.data[0] == 3) {
+            $("#result").prepend("<p>Elapsed time: " + p.data[1] + " seconds.</p>");
+        }
+    };
+    w.postMessage([cmd, bam, bai, fa, fai, reg]);
+}
+</script>
+</head>
+<body>
+    <label for="bam">BAM:</label>
+    <input type="file" id="bam"></input>
+    <label for="bai">BAM index (BAI):</label>
+    <input type="file" id="bai"></input>
+    <label for="fa">Fasta (decompressed):</label>
+    <input type="file" id="fa"></input>
+    <label for="bam">Fasta index (FAI):</label>
+    <input type="file" id="fai"></input>
+    <label for="reg">Region string</label>
+    <input type="text" id="reg" />
+    <button onclick="run(1);">Run Pileup</button>
+    <div class="progress progress-striped">
+        <div id="bamprogress" class="bar" style="width: 0%;"></div>
+    </div>
+    <div id="result"></div>
+</body>
+</html>

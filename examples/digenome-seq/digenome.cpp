@@ -89,7 +89,7 @@ void digenome(htsFile *fp, int min_mapq, int overhang, int min_f, int min_r, flo
 
         // Due to unaligned memory operation
         // https://github.com/kripken/emscripten/issues/4774 
-        memcpy(cigar, bam_get_cigar(b), n_cigar*sizeof(uint32_t));
+        memcpy(cigar, (uint8_t *)bam_get_cigar(b), n_cigar*sizeof(uint32_t));
 
         lpos = b->core.pos+1;
         rpos = b->core.pos + bam_cigar2rlen(n_cigar, cigar);

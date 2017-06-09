@@ -3,6 +3,9 @@
 
 #include "hfile_js.h"
 
+#include <iostream>
+using namespace std;
+
 static ssize_t js_read(hFILE *fp, void *buffer, size_t nbytes)
 {
     ssize_t size = EM_ASM_INT({
@@ -13,10 +16,8 @@ static ssize_t js_read(hFILE *fp, void *buffer, size_t nbytes)
 
 static off_t js_seek(hFILE *fp, off_t offset, int whence)
 {
-    // To deal with too large file..
     off_t off = EM_ASM_INT({
-        var off = js_seek($0, $1, $2);
-        return ((off > 0)? 1 : off);
+        var new_offset = js_seek($0, $1, $2);
     }, ((hFILE_js *)fp)->fd, offset, whence);
     return off;
 }
