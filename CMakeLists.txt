@@ -14,6 +14,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
     set(IS_EMSCRIPTEN TRUE)
     set(_LARGE_FILES 1)
     set(_FILE_OFFSET_BITS 64)
+    set(ENV{EMMAKEN_CFLAGS} "-include ${CMAKE_SOURCE_DIR}/offt.h")
 endif()
 
 # Create config.h
