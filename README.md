@@ -3,6 +3,9 @@ htslib-js
 
 htslib-js is a software development toolkit (SDK) for compiling htslib using Emscripten.
 
+Copyright 2016 Jeongbin Park and Liam Childs, All rights reserved.
+
+License: LGPL
 
 Prerequisites
 ----------------------
