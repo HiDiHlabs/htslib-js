@@ -20,6 +20,7 @@ Usage
 ----------------------
 
 You can clone htslib-js by issuing below command:
+
    $ git clone --recurse-submodules https://github.com/eilslabs/htslib-js
 
 Please make sure to use `--recurse-submodules` option here, to clone the submodule `htslib` required by htslib-js.
@@ -29,20 +30,27 @@ To build htslib-js, firstly you need Emscripten SDK and CMake. You can download 
 After install Emscripten SDK, required environment variables should be initialized by running:
 
 In POSIX environment:
+
    $ emsdk activate
+   
    $ source emsdk_env.sh
 
 On Windows:
+
    > emsdk activate
 
 After that, build htslib-js by running:
 
 In POSIX environment:
+
    $ emcmake cmake -DCMAKE_BUILD_TYPE=Release .
+   
    $ make
 
 On Windows:
+
    > emcmake cmake -DCMAKE_BUILD_TYPE=Release . -G "MinGW Makefiles"
+   
    > mingw32-make
 
 And then the compiled JavaScript files and example html files will be generated under 'examples' directory.
