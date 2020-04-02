@@ -108,7 +108,7 @@ void digenome(htsFile *fp, int min_mapq, int overhang, int min_f, int min_r, flo
                 for (iter=fmap.begin(); (iter->first) <= max_examin_pos && iter != fmap.end(); ) // map is always sorted by its key (http://www.cplusplus.com/reference/map/map/)
                     fmap.erase(iter++);
 
-                for (iter=rmap.begin(); (iter->first) <= max_examin_pos+overhang && iter != rmap.end(); )
+                for (iter=rmap.begin(); (iter->first) <= max_examin_pos+overhang-1 && iter != rmap.end(); )
                     rmap.erase(iter++);
 
                 min_for_pos = max_examin_pos-2;
