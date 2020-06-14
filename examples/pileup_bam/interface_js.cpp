@@ -1,10 +1,7 @@
 #include <emscripten.h>
 
-#include "interface.h"
-#include "pileup.h" 
-
-#include "hts_js.h"
-#include "faidx_js.h"
+#include "htslib/sam.h"
+#include "pileup.h"
 
 void callback_pileup(const char *chrom, int pos, char ref_base, int depth) {
     EM_ASM_ARGS({
@@ -13,20 +10,14 @@ void callback_pileup(const char *chrom, int pos, char ref_base, int depth) {
 }
 
 extern "C" {
-    int run_pileup(int fd_bam, int fd_bai, int fd_fa, int fd_fai, const char* reg) {
-        faidx_t *fai;
-        hts_idx_t *bai;
-
-        if (fd_fa == -1 || fd_fai == -1) fai = 0;
-        else fai = fai_load_js(htsFiles[fd_fa], htsFiles[fd_fai], 0); // gzi is not supported yet
-
-        if (fd_bai == -1) bai = 0;
-        else bai = hts_idx_load_js(htsFiles[fd_bai]);
-
-        pileup(htsFiles[fd_bam], bai, fai, reg, callback_pileup);
-
-        if (fai) fai_destroy_js(fai);
-        if (bai) hts_idx_destroy_js(bai);
+    int run_pileup(char* bam_file_name, char* bai_file_name, char* fasta_file_name, const char* reg) {
+        faidx_t *fai = fai_load(fasta_file_name);
+        hts_idx_t *bai = hts_idx_load(bai_file_name, HTS_FMT_BAI);
+        htsFile *fp = sam_open(bam_file_name, "rb");
+        pileup(fp, bai, fai, reg, callback_pileup);
+        sam_close(fp);
+        if (fai) fai_destroy(fai);
+        if (bai) hts_idx_destroy(bai);
         return 0;
     }
 }

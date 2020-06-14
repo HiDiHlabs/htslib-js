@@ -4,6 +4,8 @@
 #include <map>
 
 #include "htslib/sam.h"
+#include "htslib/hfile.h"
+#include "htslib/bgzf.h"
 
 using namespace std;
 
@@ -63,8 +65,21 @@ void check_cleavage(char* chrom, int pos, int overhang, int min_f, int min_r, fl
     }
 }
 
-void digenome(htsFile *fp, int min_mapq, int overhang, int min_f, int min_r, float min_score, int min_depth_f, int min_depth_r, float min_ratio_f, float min_ratio_r, void (*callback)(char*, int, int, int, int, int, float, float, float) ) {
+void digenome(htsFile *fp, int min_mapq, int overhang, int min_f, int min_r, float min_score, int min_depth_f, int min_depth_r, float min_ratio_f, float min_ratio_r, void (*cb_progress)(float), void (*cb_cleavage)(char*, int, int, int, int, int, float, float, float) ) {
     uint32_t *cigar = (uint32_t *)malloc(500 * sizeof(uint32_t));
+    hFILE *hf;
+    switch (fp->format.format) {
+    case sam:
+        hf = fp->fp.hfile;
+        break;
+    default:
+        hf = fp->fp.bgzf->fp;
+    }
+    hseek(hf, 0, SEEK_END);
+    double file_size = (double)htell(hf);
+    hseek(hf, 0, SEEK_SET);
+    printf("Total file size: %.0f\n", file_size);
+
     bam1_t *b = bam_init1();
     bam_hdr_t *header = sam_hdr_read(fp);
 
@@ -75,13 +90,20 @@ void digenome(htsFile *fp, int min_mapq, int overhang, int min_f, int min_r, flo
     map<int, int>::iterator iter;
 
     //printf("Analysis started: %d, %d, %d, %d, %f, %d, %d, %f, %f\n", min_mapq, overhang, min_f, min_r, min_score, min_depth_f, min_depth_r, min_ratio_f, min_ratio_r);
+    int cnt = 0;
+    cb_progress(0);
     while (1) {
+        cnt++;
+        if (cnt % 1000 == 0) {
+            printf("Current pos: %lld\n", htell(hf));
+            cb_progress((float)(htell(hf)/file_size)*100);
+        }
         if ( sam_read1(fp, header, b) < 0 ) break; // EOF
         if ( b->core.flag & (BAM_FUNMAP | BAM_FSECONDARY | BAM_FQCFAIL | BAM_FDUP) ) continue;
         if ( (int)b->core.qual < min_mapq ) continue;
 
         if (b->core.tid != prev_tid) {
-            check_cleavage(header->target_name[prev_tid], lpos-2, overhang, min_f, min_r, min_score, min_depth_f, min_depth_r, min_ratio_f, min_ratio_r, fmap, rmap, dmap, callback);
+            check_cleavage(header->target_name[prev_tid], lpos-2, overhang, min_f, min_r, min_score, min_depth_f, min_depth_r, min_ratio_f, min_ratio_r, fmap, rmap, dmap, cb_cleavage);
             prev_tid = b->core.tid;
         }
 
@@ -103,7 +125,7 @@ void digenome(htsFile *fp, int min_mapq, int overhang, int min_f, int min_r, flo
                 else
                     max_examin_pos = lpos-3;
 
-                check_cleavage(header->target_name[b->core.tid], max_examin_pos, overhang, min_f, min_r, min_score, min_depth_f, min_depth_r, min_ratio_f, min_ratio_r, fmap, rmap, dmap, callback);
+                check_cleavage(header->target_name[b->core.tid], max_examin_pos, overhang, min_f, min_r, min_score, min_depth_f, min_depth_r, min_ratio_f, min_ratio_r, fmap, rmap, dmap, cb_cleavage);
 
                 for (iter=fmap.begin(); (iter->first) <= max_examin_pos && iter != fmap.end(); ) // map is always sorted by its key (http://www.cplusplus.com/reference/map/map/)
                     fmap.erase(iter++);
@@ -124,7 +146,8 @@ void digenome(htsFile *fp, int min_mapq, int overhang, int min_f, int min_r, flo
             inc_map(dmap, i);
     }
 
-    check_cleavage(header->target_name[b->core.tid], lpos, overhang, min_f, min_r, min_score, min_depth_f, min_depth_r, min_ratio_f, min_ratio_r, fmap, rmap, dmap, callback);
+    check_cleavage(header->target_name[b->core.tid], lpos, overhang, min_f, min_r, min_score, min_depth_f, min_depth_r, min_ratio_f, min_ratio_r, fmap, rmap, dmap, cb_cleavage);
+    cb_progress(100);
 
     bam_destroy1(b);
     bam_hdr_destroy(header);

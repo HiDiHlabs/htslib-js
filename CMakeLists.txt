@@ -89,8 +89,6 @@ list(REMOVE_ITEM SOURCES
     "${CMAKE_SOURCE_DIR}/htslib/hfile_irods.c"
 )
 
-message(${SOURCES})
-
 if(ENABLE_LIBCURL)
     link_libraries(curl crypto)
 else()
@@ -101,21 +99,8 @@ if(!ENABLE_PLUGINS)
     list(REMOVE_ITEM SOURCES "${CMAKE_SOURCE_DIR}/htslib/plugin.c")
 endif()
 
-if(IS_EMSCRIPTEN)
-    set(SOURCES ${SOURCES}
-        hfile_js.cpp hfile_js.h
-        hts_js.cpp hts_js.h
-        faidx_js.cpp faidx_js.h
-        interface.cpp interface.h
-    )
-endif()
-
 add_library(hts ${SOURCES})
 target_link_libraries(hts z pthread)
-if (IS_EMSCRIPTEN)
-    target_compile_options(hts PRIVATE "-s" "USE_ZLIB=1")
-    target_link_libraries(hts "-s USE_ZLIB=1")
-endif()
 
 
 # Executables
@@ -128,13 +113,6 @@ target_link_libraries(htsfile hts)
 
 add_executable(tabix htslib/tabix.c)
 target_link_libraries(tabix hts)
-
-if (IS_EMSCRIPTEN)
-    target_compile_options(bgzip PRIVATE "-s" "USE_ZLIB=1")
-    target_compile_options(htsfile PRIVATE "-s" "USE_ZLIB=1")
-    target_compile_options(tabix PRIVATE "-s" "USE_ZLIB=1")
-endif ()
-
 
 # Examples
 
@@ -157,8 +135,7 @@ add_executable(pileup_bam ${EXAMPLE_SOURCE})
 target_link_libraries(pileup_bam hts)
 
 if(IS_EMSCRIPTEN)
-    target_compile_options(pileup_bam PRIVATE "-s" "USE_ZLIB=1")
-    set (CMAKE_EXE_LINKER_FLAGS "--post-js ${CMAKE_SOURCE_DIR}/post.js.in -s LINKABLE=1 -s EXPORT_ALL=1")
+    set (CMAKE_EXE_LINKER_FLAGS "-s LINKABLE=1 -s EXPORT_ALL=1 -lworkerfs.js")
     set_target_properties(pileup_bam PROPERTIES LINK_FLAGS "--post-js ${CMAKE_SOURCE_DIR}/examples/pileup_bam/post.js.in")
     add_custom_command(TARGET pileup_bam POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/examples/pileup_bam/test/pileup_bam.html ${PROJECT_BINARY_DIR}/examples/ &&
@@ -183,8 +160,7 @@ endif()
 add_executable(digenome-seq ${EXAMPLE_SOURCE})
 target_link_libraries(digenome-seq hts)
 if(IS_EMSCRIPTEN)
-    target_compile_options(digenome-seq PRIVATE "-s" "USE_ZLIB=1")
-    set_target_properties(digenome-seq PROPERTIES LINK_FLAGS "--post-js ${CMAKE_SOURCE_DIR}/examples/digenome-seq/post.js.in")
+    set_target_properties(digenome-seq PROPERTIES LINK_FLAGS "-s DEMANGLE_SUPPORT=1 -lworkerfs.js --post-js ${CMAKE_SOURCE_DIR}/examples/digenome-seq/post.js.in")
     add_custom_command(TARGET digenome-seq POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/examples/digenome-seq/test/digenome-seq.html ${PROJECT_BINARY_DIR}/examples/ &&
                 ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/examples/digenome-seq/test/digenome-seq-worker.js ${PROJECT_BINARY_DIR}/examples/
@@ -196,7 +172,6 @@ endif()
 if(IS_EMSCRIPTEN)
     add_executable(vcf-qc examples/vcf-qc/vcf_qc.c)
     target_link_libraries(vcf-qc hts)
-    target_compile_options(vcf-qc PRIVATE "-s" "USE_ZLIB=1")
 
     add_custom_target(copy)
     add_custom_command(

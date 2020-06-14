@@ -7,7 +7,11 @@
 
 using namespace std;
 
-void report_progress(char *chrom, int pos, int f, int r, int fd, int rd, float fr, float rr, float sc) {
+void report_progress(float p) {
+    printf("Current progress: %.3f %%\n", p);
+}
+
+void report_cleavage(char *chrom, int pos, int f, int r, int fd, int rd, float fr, float rr, float sc) {
     printf("%s:%d\t%d\t%d\t%d\t%d\t%f\t%f\t%f\n", chrom, pos, f, r, fd, rd, fr, rr, sc);
 }
 
@@ -86,7 +90,7 @@ int main(int argc, char **argv) {
     }
     if (argc - optind != 1) print_usage();
     htsFile *fp = sam_open(argv[optind], "rb");
-    digenome(fp, min_mapq, G, min_f, min_r, min_s, min_d, min_d, min_R, min_R, report_progress);
+    digenome(fp, min_mapq, G, min_f, min_r, min_s, min_d, min_d, min_R, min_R, report_progress, report_cleavage);
     sam_close(fp);
     return 0;
 }

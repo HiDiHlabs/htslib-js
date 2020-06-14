@@ -1,5 +1,6 @@
-function run_digenome(fd, min_mapq, gap, min_read_f, min_read_r, min_score, min_depth, min_ratio) {
-    Module._run_digenome(fd, min_mapq, gap, min_read_f, min_read_r, min_score, min_depth, min_ratio);
+function run_digenome(bam_file_path, min_mapq, gap, min_read_f, min_read_r, min_score, min_depth, min_ratio) {
+    var func = cwrap('run_digenome', 'number', ['string', 'number', 'number', 'number', 'number', 'number', 'number', 'number']);
+    func(bam_file_path, min_mapq, gap, min_read_f, min_read_r, min_score, min_depth, min_ratio);
 }
 self["run_digenome"] = run_digenome;
 
